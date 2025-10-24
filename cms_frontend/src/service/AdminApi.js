@@ -1,6 +1,9 @@
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
+// Export jwtDecode for use in other components
+export { jwtDecode };
+
 // Basic token storage helpers
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
@@ -17,6 +20,8 @@ export function setTokens({ access, refresh }) {
 export function clearTokens() {
   localStorage.removeItem(ACCESS_TOKEN_KEY);
   localStorage.removeItem(REFRESH_TOKEN_KEY);
+  localStorage.removeItem('user_role');
+  localStorage.removeItem('user_role_display');
 }
 
 function isTokenExpired(token) {
@@ -207,6 +212,36 @@ export const SpecializationApi = {
         throw error;
       });
   },
+};
+
+// Receptionist API
+export const ReceptionistApi = {
+  // Patient endpoints
+  getAllPatients() {
+    return api.get('receptionist/patients/');
+  },
+  getPatientById(patientId) {
+    return api.get(`receptionist/patients/${patientId}/`);
+  },
+  createPatient(payload) {
+    return api.post('receptionist/patients/', payload);
+  },
+  
+  // Appointment endpoints
+  getAllAppointments() {
+    return api.get('receptionist/appointments/');
+  },
+  getAppointmentById(appointmentId) {
+    return api.get(`receptionist/appointments/${appointmentId}/`);
+  },
+  createAppointment(payload) {
+    return api.post('receptionist/appointments/', payload);
+  },
+  
+  // Doctor endpoints (for appointment booking)
+  getAllDoctors() {
+    return api.get('receptionist/doctors/');
+  }
 };
 
 export default api;
