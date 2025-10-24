@@ -62,6 +62,19 @@ function LoginPage() {
                   {submitting ? (<><Spinner size="sm" className="me-2" /> Logging in...</>) : 'Login'}
                 </Button>
               </Form>
+              
+              {/* Demo Credentials */}
+              <div className="mt-4">
+                <Alert variant="info" className="mb-0">
+                  <h6 className="alert-heading">Demo Credentials</h6>
+                  <small>
+                    <strong>Doctor:</strong> doctor / doctor123<br />
+                    <strong>Admin:</strong> admin / admin123<br />
+                    <strong>Receptionist:</strong> receptionist / receptionist123<br />
+                    <strong>Lab Technician:</strong> labtech / labtech123
+                  </small>
+                </Alert>
+              </div>
             </Card.Body>
           </Card>
         </Col>

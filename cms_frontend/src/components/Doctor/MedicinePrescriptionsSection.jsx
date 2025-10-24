@@ -1,18 +1,16 @@
 import React, { useState } from 'react';
-import { FaPrescriptionBottleAlt, FaSearch, FaPlus, FaEye, FaEdit, FaPrint, FaFlask, FaPills } from 'react-icons/fa';
+import { FaPills, FaSearch, FaPlus, FaEye, FaEdit, FaPrint } from 'react-icons/fa';
 
-const PrescriptionsSection = () => {
+const MedicinePrescriptionsSection = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
-  const [filterType, setFilterType] = useState('all');
 
-  // Mock prescriptions data
+  // Mock medicine prescriptions data
   const prescriptions = [
     {
       id: 1,
       patientName: "John Smith",
       date: "2024-01-15",
-      type: "Medicine",
       medications: [
         { name: "Metformin", dosage: "500mg", frequency: "Twice daily" },
         { name: "Lisinopril", dosage: "10mg", frequency: "Once daily" }
@@ -24,7 +22,6 @@ const PrescriptionsSection = () => {
       id: 2,
       patientName: "Sarah Johnson",
       date: "2024-01-14",
-      type: "Medicine",
       medications: [
         { name: "Albuterol", dosage: "90mcg", frequency: "As needed" },
         { name: "Fluticasone", dosage: "220mcg", frequency: "Twice daily" }
@@ -33,48 +30,22 @@ const PrescriptionsSection = () => {
       doctorNotes: "Asthma management, follow up in 3 months"
     },
     {
-      id: 3,
-      patientName: "Mike Wilson",
-      date: "2024-01-13",
-      type: "Lab Test",
-      medications: [
-        { name: "Complete Blood Count", dosage: "N/A", frequency: "Once" },
-        { name: "Lipid Panel", dosage: "N/A", frequency: "Once" }
-      ],
-      status: "Completed",
-      doctorNotes: "Routine health checkup lab tests"
-    },
-    {
       id: 4,
       patientName: "Emily Davis",
       date: "2024-01-12",
-      type: "Medicine",
       medications: [
         { name: "Atorvastatin", dosage: "20mg", frequency: "Once daily" },
         { name: "Naproxen", dosage: "500mg", frequency: "Twice daily" }
       ],
       status: "Active",
       doctorNotes: "Cholesterol management and arthritis treatment"
-    },
-    {
-      id: 5,
-      patientName: "Robert Brown",
-      date: "2024-01-11",
-      type: "Lab Test",
-      medications: [
-        { name: "Blood Glucose Test", dosage: "N/A", frequency: "Fasting" },
-        { name: "HbA1c", dosage: "N/A", frequency: "Once" }
-      ],
-      status: "Active",
-      doctorNotes: "Diabetes monitoring lab tests"
     }
   ];
 
   const filteredPrescriptions = prescriptions.filter(prescription => {
     const matchesSearch = prescription.patientName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = filterStatus === 'all' || prescription.status.toLowerCase() === filterStatus.toLowerCase();
-    const matchesType = filterType === 'all' || prescription.type.toLowerCase() === filterType.toLowerCase();
-    return matchesSearch && matchesStatus && matchesType;
+    return matchesSearch && matchesStatus;
   });
 
   const getStatusBadge = (status) => {
@@ -91,26 +62,20 @@ const PrescriptionsSection = () => {
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h3 className="mb-1">
-            <FaPrescriptionBottleAlt className="me-2 text-primary" />
-            Prescriptions
+            <FaPills className="me-2 text-primary" />
+            Medicine Prescriptions
           </h3>
-          <p className="text-muted">Manage medicine and lab test prescriptions</p>
+          <p className="text-muted">Manage patient medication prescriptions</p>
         </div>
-        <div className="d-flex gap-2">
-          <button className="btn btn-primary">
-            <FaPills className="me-2" />
-            Medicine Prescription
-          </button>
-          <button className="btn btn-info">
-            <FaFlask className="me-2" />
-            Lab Test Prescription
-          </button>
-        </div>
+        <button className="btn btn-primary">
+          <FaPlus className="me-2" />
+          New Medicine Prescription
+        </button>
       </div>
 
       {/* Search and Filter */}
       <div className="row mb-4">
-        <div className="col-md-4">
+        <div className="col-md-6">
           <div className="input-group">
             <span className="input-group-text">
               <FaSearch />
@@ -118,7 +83,7 @@ const PrescriptionsSection = () => {
             <input
               type="text"
               className="form-control"
-              placeholder="Search prescriptions by patient name..."
+              placeholder="Search medicine prescriptions by patient name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -136,17 +101,6 @@ const PrescriptionsSection = () => {
             <option value="cancelled">Cancelled</option>
           </select>
         </div>
-        <div className="col-md-3">
-          <select
-            className="form-select"
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
-          >
-            <option value="all">All Types</option>
-            <option value="medicine">Medicine</option>
-            <option value="lab test">Lab Test</option>
-          </select>
-        </div>
       </div>
 
       {/* Prescriptions List */}
@@ -161,9 +115,9 @@ const PrescriptionsSection = () => {
                     <small className="text-muted">Prescription #{prescription.id}</small>
                   </div>
                   <div className="text-end">
-                    <span className={`badge ${prescription.type === 'Medicine' ? 'bg-primary' : 'bg-info'} mb-1`}>
-                      {prescription.type === 'Medicine' ? <FaPills className="me-1" /> : <FaFlask className="me-1" />}
-                      {prescription.type}
+                    <span className="badge bg-primary mb-1">
+                      <FaPills className="me-1" />
+                      Medicine
                     </span>
                     <br />
                     <span className={getStatusBadge(prescription.status)}>
@@ -220,23 +174,23 @@ const PrescriptionsSection = () => {
 
       {filteredPrescriptions.length === 0 && (
         <div className="text-center py-5">
-          <FaPrescriptionBottleAlt size={48} className="text-muted mb-3" />
-          <h5 className="text-muted">No prescriptions found</h5>
+          <FaPills size={48} className="text-muted mb-3" />
+          <h5 className="text-muted">No medicine prescriptions found</h5>
           <p className="text-muted">Try adjusting your search or filter criteria</p>
         </div>
       )}
 
       {/* Quick Stats */}
       <div className="row mt-4">
-        <div className="col-md-2">
+        <div className="col-md-3">
           <div className="card border-0 shadow-sm">
             <div className="card-body text-center">
               <h4 className="text-primary">{prescriptions.filter(p => p.status === 'Active').length}</h4>
-              <small className="text-muted">Active</small>
+              <small className="text-muted">Active Prescriptions</small>
             </div>
           </div>
         </div>
-        <div className="col-md-2">
+        <div className="col-md-3">
           <div className="card border-0 shadow-sm">
             <div className="card-body text-center">
               <h4 className="text-success">{prescriptions.filter(p => p.status === 'Completed').length}</h4>
@@ -244,37 +198,21 @@ const PrescriptionsSection = () => {
             </div>
           </div>
         </div>
-        <div className="col-md-2">
+        <div className="col-md-3">
           <div className="card border-0 shadow-sm">
             <div className="card-body text-center">
-              <h4 className="text-primary">{prescriptions.filter(p => p.type === 'Medicine').length}</h4>
-              <small className="text-muted">Medicine</small>
+              <h4 className="text-info">{prescriptions.length}</h4>
+              <small className="text-muted">Total Prescriptions</small>
             </div>
           </div>
         </div>
-        <div className="col-md-2">
+        <div className="col-md-3">
           <div className="card border-0 shadow-sm">
             <div className="card-body text-center">
-              <h4 className="text-info">{prescriptions.filter(p => p.type === 'Lab Test').length}</h4>
-              <small className="text-muted">Lab Tests</small>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-2">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body text-center">
-              <h4 className="text-warning">{prescriptions.length}</h4>
-              <small className="text-muted">Total</small>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-2">
-          <div className="card border-0 shadow-sm">
-            <div className="card-body text-center">
-              <h4 className="text-secondary">
+              <h4 className="text-warning">
                 {prescriptions.reduce((total, p) => total + p.medications.length, 0)}
               </h4>
-              <small className="text-muted">Items</small>
+              <small className="text-muted">Total Medications</small>
             </div>
           </div>
         </div>
@@ -283,4 +221,4 @@ const PrescriptionsSection = () => {
   );
 };
 
-export default PrescriptionsSection;
+export default MedicinePrescriptionsSection;

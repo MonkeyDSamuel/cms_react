@@ -5,10 +5,11 @@ import {
   FaUserInjured, 
   FaPrescriptionBottleAlt, 
   FaFileMedicalAlt, 
-  FaChartLine, 
   FaCog,
   FaSignOutAlt,
-  FaUserMd
+  FaUserMd,
+  FaPills,
+  FaFlask
 } from 'react-icons/fa';
 
 const DoctorSidebar = ({ onSelectSection, selected }) => (
@@ -62,12 +63,23 @@ const DoctorSidebar = ({ onSelectSection, selected }) => (
         <li className="nav-item mb-1">
           <button
             className={`nav-link w-100 text-start d-flex align-items-center ${
-              selected === 'prescriptions' ? 'active' : ''
+              selected === 'medicine-prescriptions' ? 'active' : ''
             }`}
-            onClick={() => onSelectSection('prescriptions')}
+            onClick={() => onSelectSection('medicine-prescriptions')}
           >
-            <FaPrescriptionBottleAlt className="me-3" size={16} />
-            Prescriptions
+            <FaPills className="me-3" size={16} />
+            Medicine Prescriptions
+          </button>
+        </li>
+        <li className="nav-item mb-1">
+          <button
+            className={`nav-link w-100 text-start d-flex align-items-center ${
+              selected === 'lab-prescriptions' ? 'active' : ''
+            }`}
+            onClick={() => onSelectSection('lab-prescriptions')}
+          >
+            <FaFlask className="me-3" size={16} />
+            Lab Test Prescriptions
           </button>
         </li>
         <li className="nav-item mb-1">
@@ -79,24 +91,6 @@ const DoctorSidebar = ({ onSelectSection, selected }) => (
           >
             <FaFileMedicalAlt className="me-3" size={16} />
             Medical Records
-          </button>
-        </li>
-      </ul>
-    </div>
-
-    {/* Reports Section */}
-    <div className="mb-4">
-      <h6 className="text-muted text-uppercase small mb-3">Reports</h6>
-      <ul className="nav nav-pills flex-column">
-        <li className="nav-item mb-1">
-          <button
-            className={`nav-link w-100 text-start d-flex align-items-center ${
-              selected === 'analytics' ? 'active' : ''
-            }`}
-            onClick={() => onSelectSection('analytics')}
-          >
-            <FaChartLine className="me-3" size={16} />
-            Analytics
           </button>
         </li>
       </ul>

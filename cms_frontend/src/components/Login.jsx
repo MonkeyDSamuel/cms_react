@@ -21,20 +21,47 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setSubmitting(true);
-    AuthService.login({
-      username: formData.username,
-      password: formData.password,
-      role: formData.role?.toLowerCase(),
-    })
-      .then(() => {
-        const redirectTo = location.state?.from?.pathname || '/login/admin';
+    
+    // Demo credentials for testing
+    const demoCredentials = {
+      doctor: { username: 'doctor', password: 'doctor123' },
+      admin: { username: 'admin', password: 'admin123' },
+      receptionist: { username: 'receptionist', password: 'receptionist123' },
+      'lab technician': { username: 'labtech', password: 'labtech123' }
+    };
+    
+    const selectedRole = formData.role?.toLowerCase();
+    const credentials = demoCredentials[selectedRole];
+    
+    // Simulate API call with demo credentials
+    setTimeout(() => {
+      if (credentials && 
+          formData.username === credentials.username && 
+          formData.password === credentials.password) {
+        
+        // Store demo login info
+        localStorage.setItem('demo_user', JSON.stringify({
+          username: formData.username,
+          role: selectedRole,
+          loginTime: new Date().toISOString()
+        }));
+        
+        // Redirect based on role
+        let redirectTo = '/login/admin'; // default
+        if (selectedRole === 'doctor') {
+          redirectTo = '/login/doctor';
+        } else if (selectedRole === 'receptionist') {
+          redirectTo = '/login/receptionist';
+        } else if (selectedRole === 'lab technician') {
+          redirectTo = '/login/labtech';
+        }
+        
         navigate(redirectTo, { replace: true });
-      })
-      .catch((err) => {
-        const msg = err?.response?.data?.detail || err?.message || 'Login failed';
-        setError(String(msg));
-      })
-      .finally(() => setSubmitting(false));
+      } else {
+        setError('Invalid credentials. Please use demo credentials provided below.');
+      }
+      setSubmitting(false);
+    }, 1000);
   };
 
   return { formData, handleChange, handleSubmit, submitting, error };

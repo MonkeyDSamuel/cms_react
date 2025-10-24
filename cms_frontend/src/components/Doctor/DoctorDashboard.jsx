@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaUserMd, FaCalendarAlt, FaClipboardList, FaClock, FaExclamationTriangle, FaCheckCircle } from 'react-icons/fa';
+import { FaUserMd, FaCalendarAlt, FaClipboardList, FaClock, FaCheckCircle, FaUsers, FaPrescriptionBottleAlt } from 'react-icons/fa';
 
 const DoctorDashboard = () => {
   // Mock data for doctor-specific stats
@@ -11,22 +11,22 @@ const DoctorDashboard = () => {
       color: "primary"
     },
     { 
-      title: "Pending Consultations", 
+      title: "Total Patients", 
+      value: 156, 
+      icon: <FaUsers className="text-info" />,
+      color: "info"
+    },
+    { 
+      title: "Prescriptions Today", 
       value: 8, 
-      icon: <FaClock className="text-warning" />,
-      color: "warning"
+      icon: <FaPrescriptionBottleAlt className="text-success" />,
+      color: "success"
     },
     { 
       title: "Completed Today", 
       value: 15, 
       icon: <FaCheckCircle className="text-success" />,
       color: "success"
-    },
-    { 
-      title: "Urgent Cases", 
-      value: 3, 
-      icon: <FaExclamationTriangle className="text-danger" />,
-      color: "danger"
     }
   ];
 
@@ -156,9 +156,9 @@ const DoctorDashboard = () => {
                   <FaCheckCircle className="me-2" />
                   Add Prescription
                 </button>
-                <button className="btn btn-outline-warning">
-                  <FaExclamationTriangle className="me-2" />
-                  Emergency Cases
+                <button className="btn btn-outline-info">
+                  <FaClock className="me-2" />
+                  Schedule
                 </button>
               </div>
             </div>

@@ -3,9 +3,9 @@ import DoctorSidebar from '../../elements/Doctor/DoctorSidebar';
 import DoctorDashboard from '../../components/Doctor/DoctorDashboard';
 import AppointmentsSection from '../../components/Doctor/AppointmentsSection';
 import PatientsSection from '../../components/Doctor/PatientsSection';
-import PrescriptionsSection from '../../components/Doctor/PrescriptionsSection';
+import MedicinePrescriptionsSection from '../../components/Doctor/MedicinePrescriptionsSection';
+import LabTestPrescriptionsSection from '../../components/Doctor/LabTestPrescriptionsSection';
 import MedicalRecordsSection from '../../components/Doctor/MedicalRecordsSection';
-import AnalyticsSection from '../../components/Doctor/AnalyticsSection';
 import SettingsSection from '../../components/Doctor/SettingsSection';
 
 const DoctorDashboardPage = () => {
@@ -20,12 +20,12 @@ const DoctorDashboardPage = () => {
         return <AppointmentsSection />;
       case 'patients':
         return <PatientsSection />;
-      case 'prescriptions':
-        return <PrescriptionsSection />;
+      case 'medicine-prescriptions':
+        return <MedicinePrescriptionsSection />;
+      case 'lab-prescriptions':
+        return <LabTestPrescriptionsSection />;
       case 'medical-records':
         return <MedicalRecordsSection />;
-      case 'analytics':
-        return <AnalyticsSection />;
       case 'settings':
         return <SettingsSection />;
       case 'logout':
