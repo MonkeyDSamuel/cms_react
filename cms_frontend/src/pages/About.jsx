@@ -1,10 +1,8 @@
+import React from 'react';
+import AboutSection from '../components/AboutSection';
+
 function About() {
-  return (
-    <div>
-      <h2>About Us</h2>
-      {/* Place your AboutSection content or component here */}
-    </div>
-  );
+  return <AboutSection />;
 }
 
 export default About;

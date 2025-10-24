@@ -3,21 +3,21 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Navbar from "./elements/Navbar";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
-import About from "./pages/About";         // Create this file/component
-import Contact from "./pages/Contact";     // Create this file/component
-import Login from "./pages/Login";         // Create this file/component
+import LoginPage from "./pages/LoginPage";
+import ProtectedRoute from "./service/ProtectRoutes";
 
 function App() {
   return (
     <Router>
       <Navbar />
       <Routes>
-        <Route path="/" element={<Dashboard section="home" />} />
+        <Route path="/" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/login/admin" element={<AdminDashboardPage />} />
+        {/* Only dashboard and login routes since internal sections */}
+        <Route path="/login" element={<LoginPage />} />
+        <Route element={<ProtectedRoute requiredRole="ADMIN" />}> 
+          <Route path="/login/admin" element={<AdminDashboardPage />} />
+        </Route>
       </Routes>
     </Router>
   );
