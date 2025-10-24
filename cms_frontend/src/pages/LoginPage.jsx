@@ -43,20 +43,6 @@ function LoginPage() {
                   />
                 </Form.Group>
 
-                <Form.Group className="mb-4" controlId="formRole">
-                  <Form.Label>Role</Form.Label>
-                  <Form.Select
-                    name="role"
-                    value={formData.role}
-                    onChange={handleChange}
-                    required
-                  >
-                    <option>Admin</option>
-                    <option>Receptionist</option>
-                    <option>Doctor</option>
-                    <option>Lab Technician</option>
-                  </Form.Select>
-                </Form.Group>
 
                 <Button variant="primary" type="submit" className="w-100" disabled={submitting}>
                   {submitting ? (<><Spinner size="sm" className="me-2" /> Logging in...</>) : 'Login'}

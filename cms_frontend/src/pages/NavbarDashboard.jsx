@@ -1,17 +1,23 @@
 import React from 'react';
 import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
+import { AuthService } from '../service/AdminApi';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function Navbardashboard() {
   const navigate = useNavigate();
 
   // Logout handler
-  const handleLogout = () => {
-    // Remove token (adjust key if different)
-    localStorage.removeItem('token');
-    // Redirect to login
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      // Call backend logout endpoint
+      await AuthService.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Always redirect to login page
+      navigate('/login');
+    }
   };
 
   return (
