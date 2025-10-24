@@ -3,7 +3,7 @@ import {
   Table, Button, Modal, Form, Row, Col, 
   Alert, Spinner, Badge, Card, ListGroup 
 } from 'react-bootstrap';
-import { ReceptionistApi } from '../../service/AdminApi';
+import { PatientManagementApi, AppointmentManagementApi, DoctorManagementApi } from '../../service/ReceptionistApi';
 
 function ReceptionistDashboard({ selectedSection }) {
   // Common state
@@ -33,6 +33,7 @@ function ReceptionistDashboard({ selectedSection }) {
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
   const [appointmentForm, setAppointmentForm] = useState({
     DoctorId: '',
+    PatientId: '',
     TokenNo: '',
     Date: '',
     Status: 'SCHEDULED'
@@ -66,7 +67,7 @@ function ReceptionistDashboard({ selectedSection }) {
   const loadPatients = async () => {
     setLoading(true);
     try {
-      const response = await ReceptionistApi.getAllPatients();
+      const response = await PatientManagementApi.getAll();
       console.log('Patients API response:', response);
       
       // Handle different response structures
@@ -94,7 +95,7 @@ function ReceptionistDashboard({ selectedSection }) {
     setError('');
     
     try {
-      const response = await ReceptionistApi.createPatient(patientForm);
+      const response = await PatientManagementApi.create(patientForm);
       setSuccess('Patient created successfully');
       setShowPatientModal(false);
       setPatientForm({
@@ -122,7 +123,7 @@ function ReceptionistDashboard({ selectedSection }) {
   const loadAppointments = async () => {
     setLoading(true);
     try {
-      const response = await ReceptionistApi.getAllAppointments();
+      const response = await AppointmentManagementApi.getAll();
       console.log('Appointments API response:', response);
       
       // Handle different response structures
@@ -146,7 +147,7 @@ function ReceptionistDashboard({ selectedSection }) {
 
   const loadDoctors = async () => {
     try {
-      const response = await ReceptionistApi.getAllDoctors();
+      const response = await DoctorManagementApi.getAll();
       console.log('Doctors API response:', response);
       
       // Handle different response structures
@@ -171,11 +172,12 @@ function ReceptionistDashboard({ selectedSection }) {
     setError('');
     
     try {
-      const response = await ReceptionistApi.createAppointment(appointmentForm);
+      const response = await AppointmentManagementApi.create(appointmentForm);
       setSuccess('Appointment booked successfully');
       setShowAppointmentModal(false);
       setAppointmentForm({
         DoctorId: '',
+        PatientId: '',
         TokenNo: '',
         Date: '',
         Status: 'SCHEDULED'
@@ -194,8 +196,8 @@ function ReceptionistDashboard({ selectedSection }) {
     try {
       // Combine recent patients and appointments
       const [patientsRes, appointmentsRes] = await Promise.all([
-        ReceptionistApi.getAllPatients(),
-        ReceptionistApi.getAllAppointments()
+        PatientManagementApi.getAll(),
+        AppointmentManagementApi.getAll()
       ]);
       
       // Handle different response structures for patients
@@ -248,14 +250,32 @@ function ReceptionistDashboard({ selectedSection }) {
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
       
+      {/* Add Patient Button */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h4>Patient Management</h4>
+        <Button 
+          variant="primary" 
+          onClick={() => setShowPatientModal(true)}
+          className="d-flex align-items-center"
+        >
+          <i className="fas fa-plus me-2"></i>
+          Add Patient
+        </Button>
+      </div>
+      
       <Table responsive striped hover>
         <thead>
           <tr>
             <th>Patient ID</th>
-            <th>Name</th>
+            <th>Full Name</th>
             <th>Age</th>
             <th>Gender</th>
-            <th>Phone</th>
+            <th>Date of Birth</th>
+            <th>Phone Number</th>
+            <th>Emergency Contact</th>
+            <th>Address</th>
+            <th>Height (cm)</th>
+            <th>Weight (kg)</th>
             <th>Status</th>
             <th>Actions</th>
           </tr>
@@ -263,31 +283,36 @@ function ReceptionistDashboard({ selectedSection }) {
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan="7" className="text-center">
+              <td colSpan="12" className="text-center">
                 <Spinner animation="border" size="sm" /> Loading patients...
               </td>
             </tr>
           ) : patients.length === 0 ? (
             <tr>
-              <td colSpan="7" className="text-center text-muted">
+              <td colSpan="12" className="text-center text-muted">
                 No patients found
               </td>
             </tr>
           ) : (
             patients.map(patient => (
-              <tr key={patient.id}>
-                <td>{patient.PatientId}</td>
-                <td>{patient.Name}</td>
-                <td>{patient.Age}</td>
-                <td>{patient.Gender}</td>
-                <td>{patient.PhoneNumber}</td>
+              <tr key={patient.id || patient.PatientId}>
+                <td>{patient.PatientId || patient.id}</td>
+                <td>{patient.Name || patient.name}</td>
+                <td>{patient.Age || patient.age}</td>
+                <td>{patient.Gender || patient.gender}</td>
+                <td>{patient.DOB ? new Date(patient.DOB).toLocaleDateString() : (patient.dob ? new Date(patient.dob).toLocaleDateString() : 'N/A')}</td>
+                <td>{patient.PhoneNumber || patient.phone_number || patient.phone}</td>
+                <td>{patient.EmergencyNumber || patient.emergency_number || patient.emergency_contact || 'N/A'}</td>
+                <td>{patient.Address || patient.address || 'N/A'}</td>
+                <td>{patient.Height || patient.height || 'N/A'}</td>
+                <td>{patient.Weight || patient.weight || 'N/A'}</td>
                 <td>
-                  <Badge bg={patient.IsActive ? 'success' : 'secondary'}>
-                    {patient.IsActive ? 'Active' : 'Inactive'}
+                  <Badge bg={patient.IsActive !== false ? 'success' : 'secondary'}>
+                    {patient.IsActive !== false ? 'Active' : 'Inactive'}
                   </Badge>
                 </td>
                 <td>
-                  <Button variant="outline-primary" size="sm">
+                  <Button variant="outline-primary" size="sm" title="View Details">
                     <i className="fas fa-eye"></i>
                   </Button>
                 </td>
@@ -430,12 +455,6 @@ function ReceptionistDashboard({ selectedSection }) {
         </Form>
       </Modal>
 
-      {/* Hidden button for external trigger */}
-      <Button 
-        id="add-patient-btn" 
-        style={{ display: 'none' }} 
-        onClick={() => setShowPatientModal(true)}
-      />
     </>
   );
 
@@ -444,10 +463,24 @@ function ReceptionistDashboard({ selectedSection }) {
       {error && <Alert variant="danger">{error}</Alert>}
       {success && <Alert variant="success">{success}</Alert>}
       
+      {/* Add Appointment Button */}
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h4>Appointment Management</h4>
+        <Button 
+          variant="success" 
+          onClick={() => setShowAppointmentModal(true)}
+          className="d-flex align-items-center"
+        >
+          <i className="fas fa-plus me-2"></i>
+          Book Appointment
+        </Button>
+      </div>
+      
       <Table responsive striped hover>
         <thead>
           <tr>
             <th>Appointment ID</th>
+            <th>Patient</th>
             <th>Doctor</th>
             <th>Specialization</th>
             <th>Date</th>
@@ -459,13 +492,13 @@ function ReceptionistDashboard({ selectedSection }) {
         <tbody>
           {loading ? (
             <tr>
-              <td colSpan="7" className="text-center">
+              <td colSpan="8" className="text-center">
                 <Spinner animation="border" size="sm" /> Loading appointments...
               </td>
             </tr>
           ) : appointments.length === 0 ? (
             <tr>
-              <td colSpan="7" className="text-center text-muted">
+              <td colSpan="8" className="text-center text-muted">
                 No appointments found
               </td>
             </tr>
@@ -473,6 +506,10 @@ function ReceptionistDashboard({ selectedSection }) {
             appointments.map(appointment => (
               <tr key={appointment.id}>
                 <td>{appointment.AppointmentId}</td>
+                <td>
+                  {appointment.patient_name || 
+                   (appointment.PatientId ? `Patient ID: ${appointment.PatientId}` : 'N/A')}
+                </td>
                 <td>{appointment.doctor_name}</td>
                 <td>{appointment.doctor_specialization}</td>
                 <td>{appointment.Date}</td>
@@ -487,7 +524,7 @@ function ReceptionistDashboard({ selectedSection }) {
                   </Badge>
                 </td>
                 <td>
-                  <Button variant="outline-primary" size="sm">
+                  <Button variant="outline-primary" size="sm" title="View Details">
                     <i className="fas fa-eye"></i>
                   </Button>
                 </td>
@@ -505,6 +542,24 @@ function ReceptionistDashboard({ selectedSection }) {
         <Form onSubmit={handleAppointmentSubmit}>
           <Modal.Body>
             <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Patient *</Form.Label>
+                  <Form.Select
+                    name="PatientId"
+                    value={appointmentForm.PatientId}
+                    onChange={(e) => setAppointmentForm({...appointmentForm, [e.target.name]: e.target.value})}
+                    required
+                  >
+                    <option value="">Select Patient</option>
+                    {patients.map(patient => (
+                      <option key={patient.id || patient.PatientId} value={patient.id || patient.PatientId}>
+                        {patient.PatientId || patient.id} - {patient.Name || patient.name}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Doctor *</Form.Label>
@@ -578,12 +633,6 @@ function ReceptionistDashboard({ selectedSection }) {
         </Form>
       </Modal>
 
-      {/* Hidden button for external trigger */}
-      <Button 
-        id="add-appointment-btn" 
-        style={{ display: 'none' }} 
-        onClick={() => setShowAppointmentModal(true)}
-      />
     </>
   );
 

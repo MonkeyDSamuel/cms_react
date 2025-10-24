@@ -1,70 +1,107 @@
-import React, { useState } from 'react';
-import { FaUserInjured, FaSearch, FaPlus, FaEye, FaEdit, FaFileMedicalAlt } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaUserInjured, FaSearch, FaPlus, FaEye, FaEdit, FaFileMedicalAlt, FaSpinner } from 'react-icons/fa';
+import { PatientsApi } from '../../service/DoctorApi';
 
-const PatientsSection = () => {
+const PatientsSection = ({ staffId }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [patients, setPatients] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock patients data
-  const patients = [
-    {
-      id: 1,
-      name: "John Smith",
-      age: 45,
-      gender: "Male",
-      phone: "+1 (555) 123-4567",
-      email: "john.smith@email.com",
-      lastVisit: "2024-01-10",
-      status: "Active",
-      medicalHistory: ["Hypertension", "Diabetes Type 2"],
-      nextAppointment: "2024-01-20"
-    },
-    {
-      id: 2,
-      name: "Sarah Johnson",
-      age: 32,
-      gender: "Female",
-      phone: "+1 (555) 234-5678",
-      email: "sarah.johnson@email.com",
-      lastVisit: "2024-01-12",
-      status: "Active",
-      medicalHistory: ["Asthma"],
-      nextAppointment: "2024-01-25"
-    },
-    {
-      id: 3,
-      name: "Mike Wilson",
-      age: 28,
-      gender: "Male",
-      phone: "+1 (555) 345-6789",
-      email: "mike.wilson@email.com",
-      lastVisit: "2024-01-08",
-      status: "Active",
-      medicalHistory: [],
-      nextAppointment: "2024-01-18"
-    },
-    {
-      id: 4,
-      name: "Emily Davis",
-      age: 55,
-      gender: "Female",
-      phone: "+1 (555) 456-7890",
-      email: "emily.davis@email.com",
-      lastVisit: "2024-01-05",
-      status: "Active",
-      medicalHistory: ["Arthritis", "High Cholesterol"],
-      nextAppointment: "2024-01-22"
-    }
-  ];
+  // Load patients from backend
+  useEffect(() => {
+    const loadPatients = async () => {
+      if (!staffId) return;
+      
+      setLoading(true);
+      setError('');
+      
+      try {
+        console.log('Loading patients for staffId:', staffId);
+        const response = await PatientsApi.getAll();
+        console.log('Patients API response:', response);
+        console.log('Response data:', response.data);
+        console.log('Response data type:', typeof response.data);
+        console.log('Response data keys:', Object.keys(response.data || {}));
+        
+        // Handle Django REST Framework pagination structure
+        let patientsData = [];
+        if (response.data && Array.isArray(response.data.results)) {
+          // Standard DRF pagination format
+          patientsData = response.data.results;
+        } else if (Array.isArray(response.data)) {
+          // Direct array response
+          patientsData = response.data;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          // Custom data wrapper
+          patientsData = response.data.data;
+        } else if (response.data && response.data.patients) {
+          // Custom patients wrapper
+          patientsData = response.data.patients;
+        }
+        
+        console.log('Processed patients data:', patientsData);
+        
+        // Ensure we have an array
+        if (Array.isArray(patientsData)) {
+          setPatients(patientsData);
+        } else {
+          console.warn('Patients data is not an array:', patientsData);
+          setPatients([]);
+        }
+      } catch (err) {
+        console.error('Error loading patients:', err);
+        console.error('Error details:', err.response?.data || err.message);
+        setError(`Failed to load patients: ${err.response?.data?.detail || err.message}`);
+        setPatients([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredPatients = patients.filter(patient =>
-    patient.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    patient.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    loadPatients();
+  }, [staffId]);
+
+  // Filter patients safely
+  const filteredPatients = Array.isArray(patients) ? patients.filter(patient => {
+    const name = patient.Name || patient.name || 'Unknown';
+    const email = patient.Email || patient.email || '';
+    
+    return name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+           email.toLowerCase().includes(searchTerm.toLowerCase());
+  }) : [];
 
   const getStatusBadge = (status) => {
-    return status === 'Active' ? 'bg-success' : 'bg-secondary';
+    const isActive = status === 'Active' || status === 'ACTIVE' || status === true;
+    return isActive ? 'bg-success' : 'bg-secondary';
   };
+
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+          <div className="text-center">
+            <FaSpinner className="fa-spin text-primary mb-3" size={48} />
+            <h5>Loading patients...</h5>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="alert alert-danger" role="alert">
+          <h4 className="alert-heading">Error Loading Patients</h4>
+          <p>{error}</p>
+          <hr />
+          <p className="mb-0">Please try refreshing the page or contact support if the problem persists.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4">
@@ -103,16 +140,18 @@ const PatientsSection = () => {
       {/* Patients Grid */}
       <div className="row">
         {filteredPatients.map((patient) => (
-          <div key={patient.id} className="col-lg-6 col-xl-4 mb-3">
+          <div key={patient.id || patient.PatientId} className="col-lg-6 col-xl-4 mb-3">
             <div className="card border-0 shadow-sm h-100">
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <div>
-                    <h6 className="mb-1">{patient.name}</h6>
-                    <small className="text-muted">{patient.age} years, {patient.gender}</small>
+                    <h6 className="mb-1">{patient.Name || patient.name || 'Unknown Patient'}</h6>
+                    <small className="text-muted">
+                      {patient.Age || patient.age || 'N/A'} years, {patient.Gender || patient.gender || 'N/A'}
+                    </small>
                   </div>
-                  <span className={`badge ${getStatusBadge(patient.status)}`}>
-                    {patient.status}
+                  <span className={`badge ${getStatusBadge(patient.IsActive || patient.isActive || patient.status)}`}>
+                    {patient.IsActive || patient.isActive || patient.status ? 'Active' : 'Inactive'}
                   </span>
                 </div>
 
@@ -120,32 +159,19 @@ const PatientsSection = () => {
                   <div className="row">
                     <div className="col-6">
                       <small className="text-muted d-block">Phone</small>
-                      <span className="small">{patient.phone}</span>
+                      <span className="small">{patient.PhoneNumber || patient.phone || 'N/A'}</span>
                     </div>
                     <div className="col-6">
-                      <small className="text-muted d-block">Last Visit</small>
-                      <span className="small">{patient.lastVisit}</span>
+                      <small className="text-muted d-block">DOB</small>
+                      <span className="small">{patient.DOB || patient.dob || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
 
-                {patient.medicalHistory.length > 0 && (
+                {patient.Address && (
                   <div className="mb-3">
-                    <small className="text-muted d-block mb-1">Medical History</small>
-                    <div className="d-flex flex-wrap gap-1">
-                      {patient.medicalHistory.map((condition, idx) => (
-                        <span key={idx} className="badge bg-info bg-opacity-10 text-info small">
-                          {condition}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {patient.nextAppointment && (
-                  <div className="mb-3">
-                    <small className="text-muted d-block">Next Appointment</small>
-                    <span className="small text-primary">{patient.nextAppointment}</span>
+                    <small className="text-muted d-block">Address</small>
+                    <span className="small">{patient.Address || patient.address}</span>
                   </div>
                 )}
 
@@ -188,7 +214,7 @@ const PatientsSection = () => {
           <div className="modal-dialog modal-lg">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Patient Details - {selectedPatient.name}</h5>
+                <h5 className="modal-title">Patient Details - {selectedPatient.Name || selectedPatient.name || 'Unknown Patient'}</h5>
                 <button 
                   type="button" 
                   className="btn-close" 
@@ -199,25 +225,20 @@ const PatientsSection = () => {
                 <div className="row">
                   <div className="col-md-6">
                     <h6>Personal Information</h6>
-                    <p><strong>Name:</strong> {selectedPatient.name}</p>
-                    <p><strong>Age:</strong> {selectedPatient.age}</p>
-                    <p><strong>Gender:</strong> {selectedPatient.gender}</p>
-                    <p><strong>Phone:</strong> {selectedPatient.phone}</p>
-                    <p><strong>Email:</strong> {selectedPatient.email}</p>
+                    <p><strong>Name:</strong> {selectedPatient.Name || selectedPatient.name || 'N/A'}</p>
+                    <p><strong>Age:</strong> {selectedPatient.Age || selectedPatient.age || 'N/A'}</p>
+                    <p><strong>Gender:</strong> {selectedPatient.Gender || selectedPatient.gender || 'N/A'}</p>
+                    <p><strong>Phone:</strong> {selectedPatient.PhoneNumber || selectedPatient.phone || 'N/A'}</p>
+                    <p><strong>Emergency Contact:</strong> {selectedPatient.EmergencyNumber || selectedPatient.emergencyNumber || 'N/A'}</p>
+                    <p><strong>DOB:</strong> {selectedPatient.DOB || selectedPatient.dob || 'N/A'}</p>
                   </div>
                   <div className="col-md-6">
-                    <h6>Medical Information</h6>
-                    <p><strong>Last Visit:</strong> {selectedPatient.lastVisit}</p>
-                    <p><strong>Status:</strong> {selectedPatient.status}</p>
-                    <p><strong>Next Appointment:</strong> {selectedPatient.nextAppointment}</p>
-                    <div>
-                      <strong>Medical History:</strong>
-                      <ul className="mt-1">
-                        {selectedPatient.medicalHistory.map((condition, idx) => (
-                          <li key={idx}>{condition}</li>
-                        ))}
-                      </ul>
-                    </div>
+                    <h6>Additional Information</h6>
+                    <p><strong>Address:</strong> {selectedPatient.Address || selectedPatient.address || 'N/A'}</p>
+                    <p><strong>Height:</strong> {selectedPatient.Height || selectedPatient.height || 'N/A'}</p>
+                    <p><strong>Weight:</strong> {selectedPatient.Weight || selectedPatient.weight || 'N/A'}</p>
+                    <p><strong>Status:</strong> {selectedPatient.IsActive || selectedPatient.isActive ? 'Active' : 'Inactive'}</p>
+                    <p><strong>Patient ID:</strong> {selectedPatient.PatientId || selectedPatient.id || 'N/A'}</p>
                   </div>
                 </div>
               </div>
@@ -242,3 +263,4 @@ const PatientsSection = () => {
 };
 
 export default PatientsSection;
+

@@ -1,67 +1,88 @@
-import React, { useState } from 'react';
-import { FaFileMedicalAlt, FaSearch, FaPlus, FaEye, FaDownload, FaEdit } from 'react-icons/fa';
+import React, { useState, useEffect } from 'react';
+import { FaFileMedicalAlt, FaSearch, FaPlus, FaEye, FaDownload, FaEdit, FaSpinner } from 'react-icons/fa';
+import { MedicalRecordsApi } from '../../service/DoctorApi';
 
-const MedicalRecordsSection = () => {
+const MedicalRecordsSection = ({ staffId, staffInfo }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRecord, setSelectedRecord] = useState(null);
+  const [medicalRecords, setMedicalRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  // Mock medical records data
-  const medicalRecords = [
-    {
-      id: 1,
-      patientName: "John Smith",
-      recordType: "Consultation Report",
-      date: "2024-01-15",
-      doctor: "Dr. John Smith",
-      diagnosis: "Hypertension, Type 2 Diabetes",
-      symptoms: "High blood pressure, elevated blood sugar",
-      treatment: "Metformin 500mg, Lisinopril 10mg",
-      followUp: "2024-02-15",
-      attachments: ["Lab Results", "Blood Pressure Chart"]
-    },
-    {
-      id: 2,
-      patientName: "Sarah Johnson",
-      recordType: "Emergency Visit",
-      date: "2024-01-14",
-      doctor: "Dr. John Smith",
-      diagnosis: "Acute Asthma Attack",
-      symptoms: "Shortness of breath, wheezing",
-      treatment: "Albuterol inhaler, Prednisone",
-      followUp: "2024-01-21",
-      attachments: ["X-Ray Report", "Pulmonary Function Test"]
-    },
-    {
-      id: 3,
-      patientName: "Mike Wilson",
-      recordType: "Physical Examination",
-      date: "2024-01-13",
-      doctor: "Dr. John Smith",
-      diagnosis: "Back Strain",
-      symptoms: "Lower back pain, muscle stiffness",
-      treatment: "Ibuprofen, Physical therapy",
-      followUp: "2024-01-27",
-      attachments: ["MRI Report"]
-    },
-    {
-      id: 4,
-      patientName: "Emily Davis",
-      recordType: "Follow-up Visit",
-      date: "2024-01-12",
-      doctor: "Dr. John Smith",
-      diagnosis: "Arthritis, High Cholesterol",
-      symptoms: "Joint pain, fatigue",
-      treatment: "Atorvastatin, Naproxen",
-      followUp: "2024-02-12",
-      attachments: ["Blood Test Results", "Joint X-Ray"]
-    }
-  ];
+  // Load medical records from backend
+  useEffect(() => {
+    const loadMedicalRecords = async () => {
+      if (!staffId) return;
+      
+      setLoading(true);
+      setError('');
+      
+      try {
+        console.log('Loading medical records for staffId:', staffId);
+        const response = await MedicalRecordsApi.getAll();
+        console.log('Medical records API response:', response);
+        
+        // Handle Django REST Framework pagination structure
+        let recordsData = [];
+        if (response.data && Array.isArray(response.data.results)) {
+          recordsData = response.data.results;
+        } else if (Array.isArray(response.data)) {
+          recordsData = response.data;
+        } else if (response.data && Array.isArray(response.data.data)) {
+          recordsData = response.data.data;
+        }
+        
+        console.log('Processed medical records data:', recordsData);
+        
+        if (Array.isArray(recordsData)) {
+          setMedicalRecords(recordsData);
+        } else {
+          console.warn('Medical records data is not an array:', recordsData);
+          setMedicalRecords([]);
+        }
+      } catch (err) {
+        console.error('Error loading medical records:', err);
+        setError(`Failed to load medical records: ${err.response?.data?.detail || err.message}`);
+        setMedicalRecords([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredRecords = medicalRecords.filter(record =>
-    record.patientName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.recordType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    record.diagnosis.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    loadMedicalRecords();
+  }, [staffId]);
+
+  // Filter records safely
+  const filteredRecords = Array.isArray(medicalRecords) ? medicalRecords.filter(record => {
+    const patientName = record.patient_name || record.patientName || 'Unknown';
+    return patientName.toLowerCase().includes(searchTerm.toLowerCase());
+  }) : [];
+
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="d-flex justify-content-center align-items-center" style={{ height: '400px' }}>
+          <div className="text-center">
+            <FaSpinner className="fa-spin text-primary mb-3" size={48} />
+            <h5>Loading medical records...</h5>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-4">
+        <div className="alert alert-danger" role="alert">
+          <h4 className="alert-heading">Error Loading Medical Records</h4>
+          <p>{error}</p>
+          <hr />
+          <p className="mb-0">Please try refreshing the page or contact support if the problem persists.</p>
+        </div>
+      </div>
+    );
+  }
 
   const getRecordTypeBadge = (type) => {
     const typeClasses = {
@@ -71,6 +92,21 @@ const MedicalRecordsSection = () => {
       'Follow-up Visit': 'bg-success'
     };
     return `badge ${typeClasses[type] || 'bg-secondary'}`;
+  };
+
+  const handleViewDetails = (record) => {
+    alert(`Viewing details for medical record: ${record.id}`);
+    // TODO: Implement detailed view modal
+  };
+
+  const handleEdit = (record) => {
+    alert(`Editing medical record: ${record.id}`);
+    // TODO: Implement edit functionality
+  };
+
+  const handleDownload = (record) => {
+    alert(`Downloading medical record: ${record.id}`);
+    // TODO: Implement download functionality
   };
 
   return (
@@ -115,11 +151,11 @@ const MedicalRecordsSection = () => {
               <div className="card-body">
                 <div className="d-flex justify-content-between align-items-start mb-3">
                   <div>
-                    <h6 className="mb-1">{record.patientName}</h6>
+                    <h6 className="mb-1">{record.patient_name || record.patientName || 'Unknown Patient'}</h6>
                     <small className="text-muted">Record #{record.id}</small>
                   </div>
-                  <span className={getRecordTypeBadge(record.recordType)}>
-                    {record.recordType}
+                  <span className={getRecordTypeBadge(record.record_type || record.recordType || 'Unknown')}>
+                    {record.record_type || record.recordType || 'Unknown'}
                   </span>
                 </div>
 
@@ -127,23 +163,23 @@ const MedicalRecordsSection = () => {
                   <div className="row">
                     <div className="col-6">
                       <small className="text-muted d-block">Date</small>
-                      <span className="small">{record.date}</span>
+                      <span className="small">{record.date || record.Created_At || 'N/A'}</span>
                     </div>
                     <div className="col-6">
                       <small className="text-muted d-block">Doctor</small>
-                      <span className="small">{record.doctor}</span>
+                      <span className="small">{record.doctor_name || record.doctor || 'N/A'}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="mb-3">
                   <small className="text-muted d-block">Diagnosis</small>
-                  <p className="small mb-1">{record.diagnosis}</p>
+                  <p className="small mb-1">{record.diagnosis || record.Diagnosis || 'N/A'}</p>
                 </div>
 
                 <div className="mb-3">
-                  <small className="text-muted d-block">Symptoms</small>
-                  <p className="small mb-1">{record.symptoms}</p>
+                  <small className="text-muted d-block">Notes</small>
+                  <p className="small mb-1">{record.notes || record.Notes || record.description || 'N/A'}</p>
                 </div>
 
                 {record.attachments && record.attachments.length > 0 && (
@@ -162,17 +198,23 @@ const MedicalRecordsSection = () => {
                 <div className="d-grid gap-2">
                   <button 
                     className="btn btn-primary btn-sm"
-                    onClick={() => setSelectedRecord(record)}
+                    onClick={() => handleViewDetails(record)}
                   >
                     <FaEye className="me-2" />
                     View Details
                   </button>
                   <div className="btn-group" role="group">
-                    <button className="btn btn-outline-primary btn-sm">
+                    <button 
+                      className="btn btn-outline-primary btn-sm"
+                      onClick={() => handleEdit(record)}
+                    >
                       <FaEdit className="me-1" />
                       Edit
                     </button>
-                    <button className="btn btn-outline-success btn-sm">
+                    <button 
+                      className="btn btn-outline-success btn-sm"
+                      onClick={() => handleDownload(record)}
+                    >
                       <FaDownload className="me-1" />
                       Download
                     </button>

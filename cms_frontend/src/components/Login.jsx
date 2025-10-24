@@ -36,6 +36,16 @@ export default function Login() {
           localStorage.setItem('user_role_display', response.role_display || response.role);
         }
         
+        // Store staff information if available
+        if (response.staff_id) {
+          localStorage.setItem('staff_id', response.staff_id);
+          console.log('Stored staff_id:', response.staff_id);
+        }
+        if (response.staff_info) {
+          localStorage.setItem('staff_info', JSON.stringify(response.staff_info));
+          console.log('Stored staff_info:', response.staff_info);
+        }
+        
         // Determine redirect based on user role
         let redirectTo = '/login/admin'; // Default to admin dashboard
         

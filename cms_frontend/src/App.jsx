@@ -4,6 +4,7 @@ import Dashboard from "./pages/Dashboard";
 import Navbar from "./elements/Navbar";
 import AdminDashboardPage from "./pages/Admin/AdminDashboardPage";
 import ReceptionistDashboardPage from "./pages/Receptionist/ReceptionistDashboardPage";
+import DoctorDashboardPage from "./pages/Doctor/DoctorDashboardPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./service/ProtectRoutes";
 
@@ -21,6 +22,9 @@ function App() {
         </Route>
         <Route element={<ProtectedRoute requiredRole="REC" />}> 
           <Route path="/login/receptionist" element={<ReceptionistDashboardPage />} />
+        </Route>
+        <Route element={<ProtectedRoute requiredRole="DOC" />}> 
+          <Route path="/login/doctor" element={<DoctorDashboardPage />} />
         </Route>
       </Routes>
     </Router>

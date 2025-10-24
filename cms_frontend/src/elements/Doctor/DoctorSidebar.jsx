@@ -9,18 +9,28 @@ import {
   FaSignOutAlt,
   FaUserMd,
   FaPills,
-  FaFlask
+  FaFlask,
+  FaStethoscope
 } from 'react-icons/fa';
 
-const DoctorSidebar = ({ onSelectSection, selected }) => (
+const DoctorSidebar = ({ onSelectSection, selected, staffId, staffInfo }) => (
   <div className="bg-light border-end vh-100 p-3" style={{ width: 250 }}>
     {/* Doctor Profile Section */}
     <div className="text-center mb-4 pb-3 border-bottom">
       <div className="avatar-lg bg-primary bg-opacity-10 rounded-circle d-flex align-items-center justify-content-center mx-auto mb-2" style={{ width: '60px', height: '60px' }}>
         <FaUserMd className="text-primary" size={24} />
       </div>
-      <h6 className="mb-1">Dr. John Smith</h6>
-      <small className="text-muted">General Practitioner</small>
+      <h6 className="mb-1">
+        {staffInfo ? `Dr. ${staffInfo.first_name} ${staffInfo.last_name}` : 'Dr. Loading...'}
+      </h6>
+      <small className="text-muted">
+        {staffInfo ? staffInfo.role_display : 'Loading...'}
+      </small>
+      {staffId && (
+        <small className="text-muted d-block mt-1">
+          ID: {staffId}
+        </small>
+      )}
     </div>
 
     {/* Navigation Menu */}
@@ -52,12 +62,12 @@ const DoctorSidebar = ({ onSelectSection, selected }) => (
         <li className="nav-item mb-1">
           <button
             className={`nav-link w-100 text-start d-flex align-items-center ${
-              selected === 'patients' ? 'active' : ''
+              selected === 'consultations' ? 'active' : ''
             }`}
-            onClick={() => onSelectSection('patients')}
+            onClick={() => onSelectSection('consultations')}
           >
-            <FaUserInjured className="me-3" size={16} />
-            Patients
+            <FaStethoscope className="me-3" size={16} />
+            Consultations
           </button>
         </li>
         <li className="nav-item mb-1">

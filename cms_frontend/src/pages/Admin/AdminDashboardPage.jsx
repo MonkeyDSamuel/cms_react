@@ -229,8 +229,11 @@ function AddStaff() {
 
     try {
       // Step 1: Create staff member
+      console.log('DEBUG FRONTEND: Creating staff with form data:', form);
       const staffResponse = await StaffApi.add(form);
+      console.log('DEBUG FRONTEND: Staff response:', staffResponse);
       const staffData = staffResponse.data?.data || staffResponse.data;
+      console.log('DEBUG FRONTEND: Staff data extracted:', staffData);
       
       // Step 2: If role is DOC, create doctor profile
       if (form.Role === 'DOC') {
@@ -243,6 +246,10 @@ function AddStaff() {
           years_of_experience: Number(doctorForm.YearsOfExperience),
           is_available: doctorForm.IsAvailable,
         };
+        
+        console.log('DEBUG FRONTEND: Staff data received:', staffData);
+        console.log('DEBUG FRONTEND: Doctor payload:', doctorPayload);
+        console.log('DEBUG FRONTEND: Doctor form data:', doctorForm);
         
         await DoctorApi.create(doctorPayload);
         setSuccess('Staff member and doctor profile created successfully');
@@ -272,7 +279,10 @@ function AddStaff() {
         IsAvailable: true,
       });
     } catch (err) {
-      setError(err?.response?.data?.detail || err.message || 'Failed to add staff');
+      console.error('DEBUG FRONTEND: Error occurred:', err);
+      console.error('DEBUG FRONTEND: Error response:', err.response);
+      console.error('DEBUG FRONTEND: Error data:', err.response?.data);
+      setError(err?.response?.data?.error || err?.response?.data?.detail || err.message || 'Failed to add staff');
     } finally {
       setSubmitting(false);
     }
