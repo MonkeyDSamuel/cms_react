@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
-import { getAccessToken, jwtDecode } from './AdminApi';
+import { getAccessToken, jwtDecode, checkTokenExpiration } from './AdminApi';
 
 export default function ProtectedRoute({ requiredRole }) {
   const location = useLocation();
@@ -10,6 +10,13 @@ export default function ProtectedRoute({ requiredRole }) {
 
   useEffect(() => {
     const checkAccess = async () => {
+      // First check if token is expired
+      if (!checkTokenExpiration()) {
+        setHasAccess(false);
+        setIsLoading(false);
+        return;
+      }
+
       if (!token) {
         setHasAccess(false);
         setIsLoading(false);

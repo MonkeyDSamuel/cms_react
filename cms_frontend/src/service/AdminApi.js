@@ -22,6 +22,26 @@ export function clearTokens() {
   localStorage.removeItem(REFRESH_TOKEN_KEY);
   localStorage.removeItem('user_role');
   localStorage.removeItem('user_role_display');
+  localStorage.removeItem('staff_id');
+}
+
+// Global token expiration handler
+function handleTokenExpiration() {
+  clearTokens();
+  // Show alert
+  alert('Login Expired');
+  // Redirect to login
+  window.location.href = '/login';
+}
+
+// Check token expiration on app startup
+export function checkTokenExpiration() {
+  const token = getAccessToken();
+  if (token && isTokenExpired(token)) {
+    handleTokenExpiration();
+    return false;
+  }
+  return true;
 }
 
 function isTokenExpired(token) {
@@ -93,7 +113,7 @@ api.interceptors.response.use(
       try {
         const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
         if (!refreshToken || isTokenExpired(refreshToken)) {
-          clearTokens();
+          handleTokenExpiration();
           processQueue(new Error('Refresh token missing/expired'));
           return Promise.reject(error);
         }
@@ -106,7 +126,7 @@ api.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${newAccess}`;
         return api(originalRequest);
       } catch (err) {
-        clearTokens();
+        handleTokenExpiration();
         processQueue(err, null);
         return Promise.reject(err);
       } finally {
@@ -119,14 +139,22 @@ api.interceptors.response.use(
 
 // Auth endpoints
 export const AuthService = {
-  async login({ username, password, role }) {
+  async login({ username, password }) {
     // Backend expects username/password at /auth/login/
-    const res = await authApi.post('login/', { username, password, role });
-    // Accept flexible token shapes
+    const res = await authApi.post('login/', { username, password });
+    // Handle the new response format
     const data = res.data || {};
-    const access = data.access || data.token || data.access_token;
-    const refresh = data.refresh || data.refresh_token;
-    if (access) setTokens({ access, refresh });
+    const access = data.access;
+    const refresh = data.refresh;
+    
+    if (access) {
+      setTokens({ access, refresh });
+      // Store additional user info
+      if (data.role) localStorage.setItem('user_role', data.role);
+      if (data.role_display) localStorage.setItem('user_role_display', data.role_display);
+      if (data.staff_id) localStorage.setItem('staff_id', data.staff_id);
+    }
+    
     return data;
   },
   async logout() {
@@ -156,7 +184,33 @@ export const StaffApi = {
     return api.post('staff/add/', payload);
   },
   update(payload) {
+    console.log('StaffApi.update called with payload:', payload);
+    // Use the correct backend endpoint
+    console.log('Using PUT to staff/update/ endpoint');
     return api.put('staff/update/', payload);
+  },
+  
+  // Alternative update methods to try different approaches
+  updateById(staffId, updateData) {
+    console.log('StaffApi.updateById called with:', { staffId, updateData });
+    return api.put(`staff/${staffId}/`, updateData);
+  },
+  
+  updateByCode(staffCode, updateData) {
+    console.log('StaffApi.updateByCode called with:', { staffCode, updateData });
+    // Try different approaches for staff code updates
+    return api.put(`staff/update/`, { staff_code: staffCode, ...updateData });
+  },
+  
+  updateByStaffCode(staffCode, updateData) {
+    console.log('StaffApi.updateByStaffCode called with:', { staffCode, updateData });
+    // Alternative approach using staff_code field
+    return api.put(`staff/update/`, { staff_code: staffCode, ...updateData });
+  },
+  
+  updateWithPatch(payload) {
+    console.log('StaffApi.updateWithPatch called with payload:', payload);
+    return api.patch('staff/update/', payload);
   },
   deactivate(staffId) {
     return api.post('staff/deactive/', { staff_id: staffId });
@@ -171,10 +225,15 @@ export const DoctorApi = {
   getById(doctorId) {
     return api.get(`doctor/${doctorId}/`);
   },
+  getByStaffId(staffId) {
+    console.log('DoctorApi.getByStaffId called with staffId:', staffId);
+    return api.get(`doctor/staff/${staffId}/`);
+  },
   create(payload) {
     return api.post('doctor/create/', payload);
   },
   update(payload) {
+    console.log('DoctorApi.update called with payload:', payload);
     return api.put('doctor/update/', payload);
   },
 };
@@ -245,5 +304,3 @@ export const ReceptionistApi = {
 };
 
 export default api;
-
-

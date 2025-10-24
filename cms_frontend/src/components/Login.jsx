@@ -30,17 +30,9 @@ export default function Login() {
         console.log('Response redirect_module:', response.redirect_module);
         console.log('Response dashboard_url:', response.dashboard_url);
         
-        // Store user role information
-        if (response.role) {
-          localStorage.setItem('user_role', response.role);
-          localStorage.setItem('user_role_display', response.role_display || response.role);
-        }
-        
-        // Store staff information if available
-        if (response.staff_id) {
-          localStorage.setItem('staff_id', response.staff_id);
-          console.log('Stored staff_id:', response.staff_id);
-        }
+        // User role information is already stored in AuthService.login
+        console.log('User role:', response.role);
+        console.log('User role display:', response.role_display);
         if (response.staff_info) {
           localStorage.setItem('staff_info', JSON.stringify(response.staff_info));
           console.log('Stored staff_info:', response.staff_info);
