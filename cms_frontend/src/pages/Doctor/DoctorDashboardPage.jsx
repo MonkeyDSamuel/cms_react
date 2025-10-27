@@ -85,7 +85,7 @@ const DoctorDashboardPage = () => {
   };
 
   return (
-    <div className="d-flex vh-100">
+    <div className="d-flex vh-100" style={{ marginTop: '80px' }}>
       <DoctorSidebar 
         selected={selectedSection} 
         onSelectSection={setSelectedSection}

@@ -7,6 +7,7 @@ function ViewStaff() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [staff, setStaff] = useState([]);
+  const [toggling, setToggling] = useState({});
 
   const load = () => {
     setLoading(true);
@@ -26,6 +27,31 @@ function ViewStaff() {
         setError(err?.response?.data?.detail || err.message || 'Failed to load staff');
       })
       .finally(() => setLoading(false));
+  };
+
+  const handleToggleStatus = async (staffId, currentStatus) => {
+    setToggling(prev => ({ ...prev, [staffId]: true }));
+    try {
+      const response = await StaffApi.toggleStatus(staffId);
+      console.log('Toggle status response:', response);
+      
+      // Update the local state
+      setStaff(prevStaff => 
+        prevStaff.map(s => 
+          s.id === staffId || s.staff_id === staffId 
+            ? { ...s, is_active: !s.is_active }
+            : s
+        )
+      );
+      
+      // Show success message
+      setError('');
+    } catch (err) {
+      console.error('Toggle status error:', err);
+      setError(err?.response?.data?.detail || err?.response?.data?.error || err.message || 'Failed to toggle status');
+    } finally {
+      setToggling(prev => ({ ...prev, [staffId]: false }));
+    }
   };
 
   useEffect(() => { load(); }, []);
@@ -64,20 +90,43 @@ function ViewStaff() {
             <th>Email</th>
             <th>Contact</th>
             <th>Status</th>
+            <th>Action</th>
           </tr>
         </thead>
         <tbody>
           {staff.map((s, index) => {
             console.log(`Staff member ${index}:`, s);
+            const staffId = s.id || s.staff_id;
+            const isActive = s.is_active;
+            const isToggling = toggling[staffId];
+            
             return (
-              <tr key={s.id || s.staff_id || index}>
+              <tr key={staffId || index}>
                 <td>{s.staff_id || s.StaffId || s.id}</td>
                 <td>{s.first_name || s.FirstName || 'N/A'}</td>
                 <td>{s.last_name || s.LastName || 'N/A'}</td>
                 <td>{s.role_display || s.role || s.Role || 'N/A'}</td>
                 <td>{s.email || s.Email || 'N/A'}</td>
                 <td>{s.contact || s.Contact || 'N/A'}</td>
-                <td>{s.is_active ? 'Active' : 'Inactive'}</td>
+                <td>
+                  <span className={`badge ${isActive ? 'bg-success' : 'bg-danger'}`}>
+                    {isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </td>
+                <td>
+                  <Button
+                    size="sm"
+                    variant={isActive ? 'outline-danger' : 'outline-success'}
+                    onClick={() => handleToggleStatus(staffId, isActive)}
+                    disabled={isToggling}
+                  >
+                    {isToggling ? (
+                      <><Spinner size="sm" className="me-1" /> {isActive ? 'Deactivating...' : 'Activating...'}</>
+                    ) : (
+                      isActive ? 'Deactivate' : 'Activate'
+                    )}
+                  </Button>
+                </td>
               </tr>
             );
           })}
@@ -122,6 +171,58 @@ function AddStaff() {
   const [specializationError, setSpecializationError] = useState('');
   const [specializationSuccess, setSpecializationSuccess] = useState('');
   const [loadingSpecializations, setLoadingSpecializations] = useState(false);
+  const [consultationDays, setConsultationDays] = useState([]);
+  const [consultationStartTime, setConsultationStartTime] = useState('');
+  const [consultationEndTime, setConsultationEndTime] = useState('');
+
+  // Day mapping for consultation days
+  const dayMapping = {
+    'Sunday': 1,
+    'Monday': 2,
+    'Tuesday': 3,
+    'Wednesday': 4,
+    'Thursday': 5,
+    'Friday': 6,
+    'Saturday': 7
+  };
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Function to calculate duration between two times
+  const calculateDuration = (startTime, endTime) => {
+    if (!startTime || !endTime) return '';
+    
+    const start = new Date(`2000-01-01T${startTime}`);
+    const end = new Date(`2000-01-01T${endTime}`);
+    
+    // Handle case where end time is next day
+    if (end < start) {
+      end.setDate(end.getDate() + 1);
+    }
+    
+    const diffMs = end - start;
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (diffHours === 0) {
+      return `${diffMinutes} minutes`;
+    } else if (diffMinutes === 0) {
+      return `${diffHours} hour${diffHours > 1 ? 's' : ''}`;
+    } else {
+      return `${diffHours}h ${diffMinutes}m`;
+    }
+  };
+
+  const handleDayToggle = (dayName) => {
+    const dayValue = dayMapping[dayName];
+    setConsultationDays(prev => {
+      if (prev.includes(dayValue)) {
+        return prev.filter(d => d !== dayValue);
+      } else {
+        return [...prev, dayValue].sort();
+      }
+    });
+  };
 
   // Load specializations when role changes to DOC
   useEffect(() => {
@@ -267,14 +368,30 @@ function AddStaff() {
       
       // Step 2: If role is DOC, create doctor profile
       if (form.Role === 'DOC') {
+        // Validate consultation days and time
+        if (consultationDays.length === 0) {
+          setError('Please select at least one consultation day');
+          return;
+        }
+        
+        if (!consultationStartTime || !consultationEndTime) {
+          setError('Please select both start and end times for consultation');
+          return;
+        }
+        
+        if (consultationStartTime >= consultationEndTime) {
+          setError('End time must be after start time');
+          return;
+        }
+
         const doctorPayload = {
           staff_id: staffData.id || staffData.staff_id,
           specialization_id: Number(doctorForm.specialization_id),
           consultation_fee: Number(doctorForm.ConsultationFee),
-          consultation_days: doctorForm.ConsultationDays,
-          consultation_time: doctorForm.ConsultationTime,
+          consultation_days: consultationDays, // Array of integers
+          consultation_time: `${consultationStartTime}-${consultationEndTime}`, // 24-hour format
           years_of_experience: Number(doctorForm.YearsOfExperience),
-          is_available: doctorForm.IsAvailable,
+          is_available: true, // Always true by default
         };
         
         console.log('DEBUG FRONTEND: Staff data received:', staffData);
@@ -308,6 +425,9 @@ function AddStaff() {
         YearsOfExperience: '',
         IsAvailable: true,
       });
+      setConsultationDays([]);
+      setConsultationStartTime('');
+      setConsultationEndTime('');
     } catch (err) {
       console.error('DEBUG FRONTEND: Error occurred:', err);
       console.error('DEBUG FRONTEND: Error response:', err.response);
@@ -450,7 +570,30 @@ function AddStaff() {
                     <Button 
                       variant="outline-primary" 
                       size="sm"
-                      onClick={() => setShowAddSpecialization(!showAddSpecialization)}
+                      onClick={() => {
+                        setShowAddSpecialization(true);
+                        // Auto-scroll to the specialization form after a short delay
+                        setTimeout(() => {
+                          const specializationForm = document.getElementById('add-specialization-form');
+                          if (specializationForm) {
+                            // Scroll to the form with some offset to account for fixed headers
+                            const offset = 100;
+                            const elementPosition = specializationForm.getBoundingClientRect().top;
+                            const offsetPosition = elementPosition + window.pageYOffset - offset;
+                            
+                            window.scrollTo({
+                              top: offsetPosition,
+                              behavior: 'smooth'
+                            });
+                            
+                            // Focus on the first input field
+                            const firstInput = specializationForm.querySelector('input[name="name"]');
+                            if (firstInput) {
+                              setTimeout(() => firstInput.focus(), 500);
+                            }
+                          }
+                        }, 300);
+                      }}
                       style={{ whiteSpace: 'nowrap' }}
                     >
                       + Add New
@@ -475,25 +618,82 @@ function AddStaff() {
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Consultation Days *</Form.Label>
-                  <Form.Control 
-                    name="ConsultationDays" 
-                    value={doctorForm.ConsultationDays} 
-                    onChange={onDoctorFormChange}
-                    placeholder="e.g., Monday-Friday"
-                    required
-                  />
+                  <div className="d-flex flex-wrap gap-2 mb-2">
+                    {dayNames.map(day => (
+                      <Button
+                        key={day}
+                        variant={consultationDays.includes(dayMapping[day]) ? "primary" : "outline-secondary"}
+                        size="sm"
+                        onClick={() => handleDayToggle(day)}
+                        type="button"
+                        style={{ 
+                          minWidth: '80px',
+                          transition: 'all 0.2s ease',
+                          transform: consultationDays.includes(dayMapping[day]) ? 'scale(1.05)' : 'scale(1)'
+                        }}
+                        className="day-button"
+                      >
+                        <i className={`fas ${consultationDays.includes(dayMapping[day]) ? 'fa-check' : 'fa-circle'} me-1`}></i>
+                        {day.substring(0, 3)}
+                      </Button>
+                    ))}
+                  </div>
+                  {consultationDays.length === 0 && (
+                    <div className="text-danger small">
+                      <i className="fas fa-exclamation-triangle me-1"></i>
+                      Please select at least one day
+                    </div>
+                  )}
+                  {consultationDays.length > 0 && (
+                    <div className="text-success small">
+                      <i className="fas fa-check-circle me-1"></i>
+                      Selected: {consultationDays.map(day => dayNames[day - 1]).join(', ')}
+                    </div>
+                  )}
                 </Form.Group>
               </Col>
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Consultation Time *</Form.Label>
-                  <Form.Control 
-                    name="ConsultationTime" 
-                    value={doctorForm.ConsultationTime} 
-                    onChange={onDoctorFormChange}
-                    placeholder="e.g., 9:00 AM - 5:00 PM"
-                    required
-                  />
+                  <div className="d-flex gap-3 align-items-end">
+                    <div className="flex-grow-1">
+                      <Form.Label className="small text-muted mb-1">Start Time</Form.Label>
+                      <Form.Control 
+                        type="time"
+                        value={consultationStartTime}
+                        onChange={(e) => setConsultationStartTime(e.target.value)}
+                        required
+                        className="time-picker"
+                        style={{ fontSize: '1rem', padding: '0.5rem' }}
+                      />
+                    </div>
+                    <div className="d-flex align-items-center" style={{ paddingBottom: '0.5rem' }}>
+                      <span className="text-muted">to</span>
+                    </div>
+                    <div className="flex-grow-1">
+                      <Form.Label className="small text-muted mb-1">End Time</Form.Label>
+                      <Form.Control 
+                        type="time"
+                        value={consultationEndTime}
+                        onChange={(e) => setConsultationEndTime(e.target.value)}
+                        required
+                        className="time-picker"
+                        style={{ fontSize: '1rem', padding: '0.5rem' }}
+                      />
+                    </div>
+                  </div>
+                  {consultationStartTime && consultationEndTime && consultationStartTime >= consultationEndTime && (
+                    <div className="text-danger small mt-2">
+                      <i className="fas fa-exclamation-triangle me-1"></i>
+                      End time must be after start time
+                    </div>
+                  )}
+                  {consultationStartTime && consultationEndTime && consultationStartTime < consultationEndTime && (
+                    <div className="text-success small mt-2">
+                      <i className="fas fa-check-circle me-1"></i>
+                      Consultation duration: {calculateDuration(consultationStartTime, consultationEndTime)}
+                    </div>
+                  )}
                 </Form.Group>
               </Col>
               <Col md={6}>
@@ -506,18 +706,6 @@ function AddStaff() {
                     onChange={onDoctorFormChange}
                     placeholder="e.g., 5"
                     required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group className="d-flex align-items-center">
-                  <Form.Check
-                    type="checkbox"
-                    name="IsAvailable"
-                    checked={doctorForm.IsAvailable}
-                    onChange={onDoctorFormChange}
-                    label="Available for consultation"
-                    className="mt-4"
                   />
                 </Form.Group>
               </Col>
@@ -534,7 +722,7 @@ function AddStaff() {
       
       {/* Add New Specialization Form - Outside main form to avoid nesting */}
       {form.Role === 'DOC' && showAddSpecialization && (
-        <div className="mt-4 p-3 border rounded bg-light">
+        <div id="add-specialization-form" className="mt-4 p-3 border rounded bg-light">
           <h6 className="mb-3">Add New Specialization</h6>
           {specializationError ? <Alert variant="danger" className="mb-3">{specializationError}</Alert> : null}
           {specializationSuccess ? <Alert variant="success" className="mb-3">{specializationSuccess}</Alert> : null}
@@ -1031,9 +1219,9 @@ const AdminDashboardPage = () => {
   else if (selectedSection === 'update') SectionComponent = <UpdateStaff />;
 
   return (
-    <div className="d-flex">
+    <div className="d-flex admin-dashboard-wrapper">
       <AdminSidebar selected={selectedSection} onSelectSection={setSelectedSection} />
-      <main style={{ flex: 1 }}>{SectionComponent}</main>
+      <main className="admin-main-content" style={{ flex: 1, marginLeft: '220px' }}>{SectionComponent}</main>
     </div>
   );
 };

@@ -251,12 +251,12 @@ function ReceptionistDashboard({ selectedSection }) {
       {success && <Alert variant="success">{success}</Alert>}
       
       {/* Add Patient Button */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-center mb-4 receptionist-section-header">
         <h4>Patient Management</h4>
         <Button 
           variant="primary" 
           onClick={() => setShowPatientModal(true)}
-          className="d-flex align-items-center"
+          className="d-flex align-items-center receptionist-add-button"
         >
           <i className="fas fa-plus me-2"></i>
           Add Patient
@@ -464,12 +464,12 @@ function ReceptionistDashboard({ selectedSection }) {
       {success && <Alert variant="success">{success}</Alert>}
       
       {/* Add Appointment Button */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-center mb-4 receptionist-section-header">
         <h4>Appointment Management</h4>
         <Button 
           variant="success" 
           onClick={() => setShowAppointmentModal(true)}
-          className="d-flex align-items-center"
+          className="d-flex align-items-center receptionist-add-button"
         >
           <i className="fas fa-plus me-2"></i>
           Book Appointment
@@ -738,3 +738,5 @@ function ReceptionistDashboard({ selectedSection }) {
 }
 
 export default ReceptionistDashboard;
+
+

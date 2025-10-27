@@ -235,6 +235,72 @@ section:nth-child(8) { animation-delay: 0.8s; }
 }
 
 /* Responsive Design Enhancements */
+@media (max-width: 1200px) {
+  .dashboard-container {
+    padding: 0;
+  }
+  
+  /* Sidebar adjustments for medium screens */
+  .sidebar-container,
+  .bg-light.border-end {
+    width: 200px !important;
+    min-width: 200px;
+  }
+  
+  /* Sidebar text and button adjustments */
+  .sidebar-container h5 {
+    font-size: 1.1rem;
+  }
+  
+  .sidebar-container .nav-link {
+    font-size: 0.9rem;
+    padding: 0.6rem 0.75rem;
+  }
+  
+  .sidebar-container .btn {
+    font-size: 0.85rem;
+    padding: 0.6rem;
+  }
+}
+
+@media (max-width: 992px) {
+  /* Adjust sidebar width on tablets */
+  .sidebar-container,
+  .bg-light.border-end {
+    width: 180px !important;
+    min-width: 180px;
+  }
+  
+  /* Sidebar element adjustments */
+  .sidebar-container h5 {
+    font-size: 1rem;
+  }
+  
+  .sidebar-container h6 {
+    font-size: 0.85rem;
+  }
+  
+  .sidebar-container .nav-link {
+    font-size: 0.85rem;
+    padding: 0.5rem 0.65rem;
+  }
+  
+  .sidebar-container .btn {
+    font-size: 0.8rem;
+    padding: 0.5rem;
+  }
+  
+  /* Profile section adjustments */
+  .sidebar-container .avatar-lg {
+    width: 40px !important;
+    height: 40px !important;
+  }
+  
+  .stat-number {
+    font-size: 2rem;
+  }
+}
+
 @media (max-width: 768px) {
   .stat-item {
     margin-bottom: 2rem;
@@ -250,6 +316,311 @@ section:nth-child(8) { animation-delay: 0.8s; }
   
   .testimonial-card {
     margin-bottom: 1.5rem;
+  }
+  
+  /* Mobile sidebar adjustments - HIDE by default, show when toggled */
+  .sidebar-container,
+  .bg-light.border-end {
+    position: fixed !important;
+    top: 0;
+    left: -100% !important; /* Hidden off-screen */
+    width: 280px !important;
+    max-width: 80vw !important;
+    height: 100vh !important;
+    z-index: 1060 !important;
+    transition: left 0.3s ease !important;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.15) !important;
+    overflow: hidden !important; /* NO SCROLLING */
+  }
+  
+  /* Show sidebar when toggled */
+  .sidebar-container.show,
+  .bg-light.border-end.show {
+    left: 0 !important;
+  }
+  
+  /* Mobile menu toggle button */
+  .mobile-menu-toggle {
+    display: block !important;
+    position: fixed;
+    top: 15px;
+    left: 15px;
+    z-index: 1070 !important;
+    background-color: #0d6efd !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 0.375rem;
+    padding: 0.6rem 0.8rem !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+    min-width: 44px;
+    min-height: 44px;
+    cursor: pointer;
+  }
+  
+  .mobile-menu-toggle:hover {
+    background-color: #0b5ed7 !important;
+    transform: scale(1.05);
+  }
+  
+  .mobile-menu-toggle:focus {
+    outline: 2px solid #86b7fe;
+    outline-offset: 2px;
+  }
+  
+  .mobile-menu-toggle i {
+    font-size: 1.2rem;
+  }
+  
+  /* Hide toggle button on desktop */
+  @media (min-width: 992px) {
+    .mobile-menu-toggle {
+      display: none !important;
+    }
+    
+    .sidebar-close-btn {
+      display: none !important;
+    }
+  }
+  
+  /* Sidebar overlay */
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 1059;
+    display: none;
+  }
+  
+  .sidebar-overlay.show {
+    display: block;
+  }
+  
+  /* Close button inside sidebar for mobile */
+  .sidebar-close-btn {
+    display: block !important;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background-color: transparent !important;
+    border: none !important;
+    color: #6c757d !important;
+    font-size: 1.5rem !important;
+    padding: 0.5rem !important;
+    cursor: pointer;
+    z-index: 1071 !important;
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .sidebar-close-btn:hover {
+    color: #000 !important;
+    background-color: rgba(0, 0, 0, 0.05) !important;
+  }
+  
+  /* Hide close button on desktop */
+  @media (min-width: 769px) {
+    .sidebar-close-btn {
+      display: none !important;
+    }
+  }
+  
+  /* Responsive sidebar elements */
+  .sidebar-container h5,
+  .sidebar-container h6 {
+    font-size: 1rem;
+    padding: 0.5rem;
+    margin: 0;
+  }
+  
+  .sidebar-container .nav-link,
+  .sidebar-container button {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .sidebar-container .btn {
+    font-size: 0.875rem;
+    padding: 0.5rem;
+  }
+  
+  /* Smaller icons in sidebar */
+  .sidebar-container i,
+  .sidebar-container svg {
+    font-size: 1rem;
+    width: 1rem;
+    height: 1rem;
+  }
+  
+  /* Dashboard main content adjustments */
+  .receptionist-main-content,
+  .admin-main-content,
+  .doctor-main-content {
+    padding: 15px !important;
+    padding-top: 70px !important; /* Space for toggle button */
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  
+  /* Full width layout on mobile - sidebar is hidden */
+  .receptionist-dashboard.d-flex,
+  .admin-dashboard.d-flex,
+  .doctor-dashboard.d-flex {
+    flex-direction: column !important;
+  }
+  
+  /* Make main content full width on mobile */
+  .receptionist-dashboard.d-flex > main,
+  .admin-dashboard.d-flex > main,
+  .doctor-dashboard.d-flex > main {
+    width: 100% !important;
+    margin-left: 0 !important;
+  }
+  
+  /* Tables on mobile */
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+  
+  .table thead {
+    font-size: 0.75rem;
+  }
+  
+  /* Form adjustments */
+  .form-control,
+  .form-select {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+  }
+  
+  /* Button stacks on mobile */
+  .btn-group-vertical {
+    width: 100%;
+  }
+  
+  /* Stat numbers on mobile */
+  .stat-number {
+    font-size: 1.75rem;
+  }
+  
+  /* Service cards on mobile */
+  .service-icon i {
+    font-size: 2rem !important;
+  }
+  
+  /* Feature items on mobile */
+  .feature-icon {
+    font-size: 1.5rem !important;
+  }
+}
+
+@media (max-width: 576px) {
+  /* Extra small screens */
+  .container {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+  
+  /* Extra responsive sidebar on very small screens */
+  .sidebar-container,
+  .bg-light.border-end {
+    padding: 0.5rem !important;
+  }
+  
+  .sidebar-container h5 {
+    font-size: 0.9rem;
+  }
+  
+  .sidebar-container h6,
+  .sidebar-container .small {
+    font-size: 0.75rem;
+  }
+  
+  .sidebar-container .nav-link,
+  .sidebar-container button,
+  .sidebar-container .btn {
+    font-size: 0.8rem !important;
+    padding: 0.4rem 0.5rem !important;
+  }
+  
+  .sidebar-container .icon {
+    width: 0.9rem !important;
+    height: 0.9rem !important;
+  }
+  
+  .sidebar-container svg {
+    width: 0.9rem !important;
+    height: 0.9rem !important;
+  }
+  
+  /* Smaller profile avatar */
+  .sidebar-container .avatar-lg {
+    width: 35px !important;
+    height: 35px !important;
+  }
+  
+  /* Compact menu items */
+  .sidebar-container .nav-item {
+    margin-bottom: 0.25rem !important;
+  }
+  
+  /* Compact spacing */
+  .sidebar-container .border-bottom,
+  .sidebar-container .border-top {
+    margin: 0.5rem 0 !important;
+    padding: 0.5rem 0 !important;
+  }
+  
+  /* Tables - hide less important columns */
+  .table th:nth-child(n+6),
+  .table td:nth-child(n+6) {
+    display: none;
+  }
+  
+  /* Stat numbers on very small screens */
+  .stat-number {
+    font-size: 1.5rem;
+  }
+  
+  /* Login page adjustments */
+  .login-container {
+    padding: 15px;
+  }
+  
+  .login-card {
+    padding: 20px !important;
+  }
+  
+  /* Dashboard sections */
+  h3, h4, h5 {
+    font-size: 1.25rem;
+  }
+  
+  /* Consultation days buttons */
+  .day-button {
+    min-width: 70px !important;
+    font-size: 0.75rem;
+  }
+  
+  /* Time picker adjustments */
+  .time-picker {
+    font-size: 0.9rem !important;
+    padding: 0.5rem !important;
+  }
+  
+  /* Modal adjustments */
+  .modal-dialog {
+    margin: 10px;
+  }
+  
+  .modal-content {
+    padding: 15px;
+  }
+  
+  /* Card spacing */
+  .card-body {
+    padding: 15px;
   }
 }
 
@@ -430,6 +801,363 @@ footer {
   .value-item {
     margin-bottom: 1rem;
   }
+}
+
+/* Receptionist Dashboard Specific Styles */
+.receptionist-dashboard {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.receptionist-main-content {
+  padding-top: 80px !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  padding-bottom: 20px !important;
+  min-height: calc(100vh - 80px);
+}
+
+.receptionist-section-header {
+  margin-top: 20px;
+  margin-bottom: 30px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #e9ecef;
+}
+
+.receptionist-add-button {
+  position: relative;
+  z-index: 10;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
+/* Ensure buttons are always visible */
+.receptionist-dashboard .btn {
+  position: relative;
+  z-index: 5;
+}
+
+/* Fix for modal positioning */
+.receptionist-dashboard .modal {
+  z-index: 1050;
+}
+
+/* Ensure proper spacing for table headers */
+.receptionist-dashboard .table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
+/* Admin Doctor Form Enhancements */
+
+/* Time Picker Styles */
+.time-picker {
+  font-family: 'Courier New', monospace;
+  font-size: 1.1rem !important;
+  padding: 0.6rem !important;
+  border: 2px solid #dee2e6;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease;
+}
+
+.time-picker:hover {
+  border-color: #86b7fe;
+}
+
+.time-picker:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Day Button Styles */
+.day-button {
+  transition: all 0.2s ease;
+  font-weight: 500;
+}
+
+.day-button:hover {
+  transform: scale(1.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.day-button:active {
+  transform: scale(0.98);
+}
+
+/* Consultation Days Container */
+.consultation-days-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+/* Selected Days Indicator */
+.selected-days-indicator {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+}
+
+/* Specialization Form Styles */
+#add-specialization-form {
+  transition: all 0.3s ease;
+  border: 2px solid #e9ecef;
+}
+
+#add-specialization-form:focus-within {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.1);
+}
+
+/* Sidebar Non-Scrollable Styles */
+.sidebar-container,
+.bg-light.border-end {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important; /* ABSOLUTELY NO SCROLLING */
+  background-color: #f8f9fa;
+}
+
+/* Ensure NO scrolling on sidebar content */
+.sidebar-container *,
+.bg-light.border-end * {
+  overflow: hidden !important;
+  max-height: 100% !important;
+}
+
+.sidebar-menu-section {
+  flex: 1 1 auto;
+  overflow: hidden !important;
+  padding: 1rem;
+  max-height: calc(100vh - 120px); /* Account for header and footer */
+}
+
+.sidebar-header-section {
+  flex-shrink: 0;
+  max-height: none;
+}
+
+.sidebar-footer-section {
+  flex-shrink: 0;
+  margin-top: auto;
+  max-height: none;
+}
+
+/* For flex layouts inside sidebar */
+.bg-light.border-end > div:first-child {
+  flex: 0 0 auto; /* Header - no flex growth */
+}
+
+.bg-light.border-end > div:nth-child(2) {
+  flex: 1 1 auto; /* Middle section - grows to fill */
+  overflow: hidden !important;
+}
+
+.bg-light.border-end > div:last-child {
+  flex: 0 0 auto; /* Footer - no flex growth */
+}
+
+/* Responsive Utility Classes */
+@media (max-width: 768px) {
+  /* Hide on mobile */
+  .d-none-mobile {
+    display: none !important;
+  }
+  
+  /* Stack columns on mobile */
+  .col-stack-mobile {
+    flex-direction: column;
+  }
+  
+  /* Full width on mobile */
+  .w-100-mobile {
+    width: 100% !important;
+  }
+  
+  /* Smaller padding on mobile */
+  .p-mobile-sm {
+    padding: 0.5rem !important;
+  }
+  
+  /* Smaller margin on mobile */
+  .m-mobile-sm {
+    margin: 0.5rem !important;
+  }
+  
+  /* Text center on mobile */
+  .text-center-mobile {
+    text-align: center !important;
+  }
+  
+  /* Truncate long text on mobile */
+  .text-truncate-mobile {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Hide mobile toggle button on larger screens */
+@media (min-width: 769px) {
+  .mobile-menu-toggle {
+    display: none !important;
+  }
+  
+  .sidebar-overlay {
+    display: none !important;
+  }
+}
+
+/* Touch-friendly buttons on mobile */
+@media (max-width: 768px) {
+  .btn {
+    min-height: 44px; /* iOS touch target */
+    padding: 0.5rem 1rem;
+  }
+  
+  .nav-link {
+    min-height: 44px;
+  }
+  
+  .form-control,
+  .form-select {
+    min-height: 44px;
+  }
+}
+
+/* Prevent horizontal scroll */
+body, html {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Ensure tables are scrollable on mobile */
+.table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Responsive images */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive modals */
+@media (max-width: 576px) {
+  .modal-fullscreen-mobile {
+    margin: 0;
+    border-radius: 0;
+    max-width: 100%;
+    height: 100vh;
+  }
+}
+
+/* Mobile-first grid adjustments */
+@media (max-width: 768px) {
+  .row {
+    margin-left: -5px;
+    margin-right: -5px;
+  }
+  
+  .row > * {
+    padding-left: 5px;
+    padding-right: 5px;
+  }
+}
+
+/* Sidebar Responsive Base Styles */
+/* Ensure sidebars are always responsive and NON-SCROLLABLE */
+.bg-light.border-end.position-sticky {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  height: 100vh !important;
+  overflow: hidden !important; /* NO SCROLLING */
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box;
+}
+
+/* Ensure sidebar content does NOT scroll */
+.bg-light.border-end.position-sticky > * {
+  overflow: hidden !important;
+}
+
+/* Responsive sidebar containers */
+@media (min-width: 769px) {
+  .sidebar-container,
+  .bg-light.border-end[style*="width"] {
+    min-width: 220px;
+  }
+  
+  /* Add left margin to main content to account for fixed sidebar on desktop */
+  .admin-main-content {
+    margin-left: 220px !important;
+  }
+  
+  .receptionist-main-content {
+    margin-left: 250px !important;
+  }
+  
+  .doctor-main-content {
+    margin-left: 250px !important;
+  }
+  
+  /* Ensure sidebar doesn't move on scroll */
+  .bg-light.border-end.position-sticky {
+    position: fixed !important;
+  }
+}
+
+/* Ensure no scrolling in sidebar */
+.nav-pills {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+/* Sidebar responsive images and icons */
+.sidebar-container img,
+.sidebar-container .avatar {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Responsive sidebar text wrapping */
+@media (max-width: 768px) {
+  .sidebar-container h5,
+  .sidebar-container h6,
+  .sidebar-container .small {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+}
+
+.nav-link {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+  background-color: #e9ecef;
+}
+
+.nav-link.active {
+  background-color: #0d6efd;
+  color: white;
 }
 
 /* Print Styles */

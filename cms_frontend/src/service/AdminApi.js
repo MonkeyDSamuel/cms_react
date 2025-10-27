@@ -29,7 +29,7 @@ export function clearTokens() {
 function handleTokenExpiration() {
   clearTokens();
   // Show alert
-  alert('Login Expired');
+  alert('Session Expired');
   // Redirect to login
   window.location.href = '/login';
 }
@@ -214,6 +214,10 @@ export const StaffApi = {
   },
   deactivate(staffId) {
     return api.post('staff/deactive/', { staff_id: staffId });
+  },
+  toggleStatus(staffId) {
+    console.log('StaffApi.toggleStatus called with staffId:', staffId);
+    return api.post('staff/toggle-status/', { staff_id: staffId });
   },
 };
 

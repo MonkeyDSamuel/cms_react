@@ -6,9 +6,9 @@ const ReceptionistDashboardPage = () => {
   const [selectedSection, setSelectedSection] = useState('overview'); // Default section
 
   return (
-    <div className="d-flex">
+    <div className="d-flex receptionist-dashboard">
       <ReceptionistSidebar selected={selectedSection} onSelectSection={setSelectedSection} />
-      <main style={{ flex: 1, padding: '20px' }}>
+      <main className="receptionist-main-content" style={{ flex: 1 }}>
         <ReceptionistDashboard selectedSection={selectedSection} />
       </main>
     </div>
@@ -16,3 +16,4 @@ const ReceptionistDashboardPage = () => {
 };
 
 export default ReceptionistDashboardPage;
+

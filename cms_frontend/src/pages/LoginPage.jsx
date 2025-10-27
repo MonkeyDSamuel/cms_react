@@ -49,7 +49,7 @@ function LoginPage() {
                 </Button>
               </Form>
               
-              {/* Demo Credentials */}
+              {/* Demo Credentials
               <div className="mt-4">
                 <Alert variant="info" className="mb-0">
                   <h6 className="alert-heading">Demo Credentials</h6>
@@ -60,7 +60,7 @@ function LoginPage() {
                     <strong>Lab Technician:</strong> labtech / labtech123
                   </small>
                 </Alert>
-              </div>
+              </div> */}
             </Card.Body>
           </Card>
         </Col>
