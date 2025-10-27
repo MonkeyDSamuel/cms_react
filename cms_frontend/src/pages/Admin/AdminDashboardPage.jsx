@@ -8,6 +8,7 @@ function ViewStaff() {
   const [error, setError] = useState('');
   const [staff, setStaff] = useState([]);
   const [toggling, setToggling] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
 
   const load = () => {
     setLoading(true);
@@ -56,6 +57,30 @@ function ViewStaff() {
 
   useEffect(() => { load(); }, []);
 
+  // Filter staff based on search term
+  const filteredStaff = useMemo(() => {
+    if (!searchTerm.trim()) {
+      return staff;
+    }
+    
+    const searchLower = searchTerm.toLowerCase().trim();
+    return staff.filter(s => {
+      const firstName = (s.first_name || s.FirstName || '').toLowerCase();
+      const lastName = (s.last_name || s.LastName || '').toLowerCase();
+      const email = (s.email || s.Email || '').toLowerCase();
+      const staffId = (s.staff_id || s.StaffId || s.id || '').toString().toLowerCase();
+      const contact = (s.contact || s.Contact || '').toLowerCase();
+      
+      return (
+        firstName.includes(searchLower) ||
+        lastName.includes(searchLower) ||
+        email.includes(searchLower) ||
+        staffId.includes(searchLower) ||
+        contact.includes(searchLower)
+      );
+    });
+  }, [staff, searchTerm]);
+
   if (loading) return <div className="p-3"><Spinner size="sm" className="me-2" /> Loading staff...</div>;
   if (error) return <div className="p-3"><Alert variant="danger">{error}</Alert></div>;
   
@@ -80,7 +105,35 @@ function ViewStaff() {
         <h3 className="m-0">Staff List</h3>
         <Button size="sm" variant="outline-secondary" onClick={load}>Refresh</Button>
       </div>
-      <Table striped bordered hover responsive>
+      
+      {/* Search Bar */}
+      <div className="mb-3">
+        <Form.Control
+          type="text"
+          placeholder="Search by name, email, Staff ID, or phone number..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+          style={{ 
+            fontSize: '16px', // Prevents zoom on mobile
+            padding: '0.75rem 1rem',
+            borderRadius: '0.5rem',
+            border: '2px solid #dee2e6'
+          }}
+        />
+        {searchTerm && (
+          <div className="mt-2 text-muted small">
+            Showing {filteredStaff.length} of {staff.length} staff member(s)
+          </div>
+        )}
+      </div>
+
+      {filteredStaff.length === 0 ? (
+        <Alert variant="info">
+          No staff members match your search criteria.
+        </Alert>
+      ) : (
+        <Table striped bordered hover responsive>
         <thead>
           <tr>
             <th>StaffId</th>
@@ -94,7 +147,7 @@ function ViewStaff() {
           </tr>
         </thead>
         <tbody>
-          {staff.map((s, index) => {
+          {filteredStaff.map((s, index) => {
             console.log(`Staff member ${index}:`, s);
             const staffId = s.id || s.staff_id;
             const isActive = s.is_active;
@@ -132,6 +185,7 @@ function ViewStaff() {
           })}
         </tbody>
       </Table>
+      )}
     </div>
   );
 }
@@ -863,7 +917,9 @@ function UpdateStaff() {
       setSearchResults(filteredStaff);
       
       if (filteredStaff.length === 0) {
-        setError('No staff members found matching your search criteria');
+        setError(`No staff members found matching "${searchTerm}". Try searching with a different term.`);
+      } else {
+        setError(''); // Clear any previous errors if results found
       }
     } catch (err) {
       console.error('Search error:', err);
@@ -1058,7 +1114,7 @@ function UpdateStaff() {
             </div>
           )}
           
-          {!searching && searchResults.length === 0 && searchTerm && (
+          {!searching && searchResults.length === 0 && searchTerm && error && !selectedStaff && (
             <div className="mt-3">
               <Alert variant="info">
                 No staff members found matching "{searchTerm}". Try searching with a different term.

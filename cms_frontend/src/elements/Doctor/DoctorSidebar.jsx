@@ -50,7 +50,7 @@ const DoctorSidebar = ({ onSelectSection, selected, staffId, staffInfo }) => {
       />
 
       <div 
-        className={`bg-light border-end position-sticky top-0 ${isOpen ? 'show' : ''}`} 
+        className={`bg-light border-end position-sticky top-0 ${isOpen ? 'show' : ''} doctor-sidebar`} 
         style={{ width: 250, height: '100vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}
       >
         {/* Close button for mobile */}

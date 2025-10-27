@@ -85,17 +85,14 @@ const DoctorDashboardPage = () => {
   };
 
   return (
-    <div className="d-flex vh-100" style={{ marginTop: '80px' }}>
+    <div className="d-flex doctor-dashboard">
       <DoctorSidebar 
         selected={selectedSection} 
         onSelectSection={setSelectedSection}
         staffId={staffId}
         staffInfo={staffInfo}
       />
-      <main 
-        className="flex-grow-1 overflow-auto" 
-        style={{ backgroundColor: '#f8f9fa' }}
-      >
+      <main className="doctor-main-content" style={{ flex: 1 }}>
         {getSectionComponent()}
       </main>
     </div>

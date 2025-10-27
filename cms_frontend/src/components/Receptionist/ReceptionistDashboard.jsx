@@ -30,14 +30,32 @@ function ReceptionistDashboard({ selectedSection }) {
   // Appointment Management State
   const [appointments, setAppointments] = useState([]);
   const [doctors, setDoctors] = useState([]);
+  const [specializations, setSpecializations] = useState([]);
+  const [availableDoctors, setAvailableDoctors] = useState([]);
+  const [availableDates, setAvailableDates] = useState([]);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  
+  // Sequential appointment form state
   const [appointmentForm, setAppointmentForm] = useState({
-    DoctorId: '',
     PatientId: '',
-    TokenNo: '',
+    Specialization: '',
+    DoctorId: '',
     Date: '',
+    TokenNo: '',
     Status: 'SCHEDULED'
   });
+  
+  // Track step completion for conditional enabling
+  const [formSteps, setFormSteps] = useState({
+    step1: false, // Patient ID entered
+    step2: false, // Specialization selected
+    step3: false, // Doctor selected
+    step4: false, // Date selected
+    step5: false  // Token generated
+  });
+  
+  // Auto-generated token number
+  const [generatedToken, setGeneratedToken] = useState(null);
 
   // Recent Activity State
   const [recentActivity, setRecentActivity] = useState([]);
@@ -166,22 +184,189 @@ function ReceptionistDashboard({ selectedSection }) {
     }
   };
 
+  // Load specializations
+  const loadSpecializations = async () => {
+    try {
+      const response = await DoctorManagementApi.getSpecializations();
+      console.log('Specializations API response:', response);
+      let specs = [];
+      
+      // Handle the backend response structure: { success: true, data: [...], count: n }
+      if (response.data?.success && Array.isArray(response.data.data)) {
+        specs = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        specs = response.data;
+      } else if (response.data?.data && Array.isArray(response.data.data)) {
+        specs = response.data.data;
+      }
+      
+      console.log('Loaded specializations:', specs);
+      setSpecializations(specs);
+    } catch (err) {
+      console.error('Error loading specializations:', err);
+      console.error('Error response:', err.response);
+      setSpecializations([]);
+    }
+  };
+
+  // Load available doctors based on specialization
+  const loadAvailableDoctors = async (specializationId) => {
+    try {
+      const response = await DoctorManagementApi.getAvailableDoctors(specializationId);
+      console.log('Available doctors API response:', response);
+      let doctors = [];
+      
+      // Handle response structure
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        doctors = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        doctors = response.data;
+      }
+      
+      // Filter only active doctors
+      const activeDoctors = doctors.filter(d => 
+        d.is_active === true || d.IsActive === true ||
+        d.is_available === true || d.IsAvailable === true
+      );
+      
+      console.log('Available doctors after filtering:', activeDoctors);
+      setAvailableDoctors(activeDoctors);
+    } catch (err) {
+      console.error('Error loading available doctors:', err);
+      console.error('Error response:', err.response);
+      setAvailableDoctors([]);
+    }
+  };
+
+  // Load available dates for selected doctor
+  const loadAvailableDates = async (doctorId) => {
+    try {
+      const response = await DoctorManagementApi.getAvailableDates(doctorId);
+      console.log('Available dates API response:', response);
+      let dates = [];
+      
+      // Handle response structure
+      if (response.data?.data && Array.isArray(response.data.data)) {
+        dates = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        dates = response.data;
+      }
+      
+      console.log('Available dates:', dates);
+      setAvailableDates(dates);
+    } catch (err) {
+      console.error('Error loading available dates:', err);
+      console.error('Error response:', err.response);
+      setAvailableDates([]);
+    }
+  };
+
+  // Generate token number based on 30-minute intervals
+  const generateTokenNumber = (doctorId, date) => {
+    if (!doctorId || !date) return null;
+    
+    // Get all appointments for this doctor on this date
+    const existingAppointments = appointments.filter(apt => 
+      apt.DoctorId === doctorId && apt.Date === date
+    );
+    
+    // Count appointments and add 1
+    const tokenNo = existingAppointments.length + 1;
+    setGeneratedToken(tokenNo);
+    return tokenNo;
+  };
+
+  // Handle Patient ID input
+  const handlePatientIdChange = (e) => {
+    const patientId = e.target.value;
+    setAppointmentForm(prev => ({ ...prev, PatientId: patientId }));
+    setFormSteps(prev => ({ ...prev, step1: !!patientId }));
+    
+    // Reset later steps
+    if (!patientId) {
+      setFormSteps({ step1: false, step2: false, step3: false, step4: false, step5: false });
+      setAppointmentForm({ ...appointmentForm, Specialization: '', DoctorId: '', Date: '', TokenNo: '' });
+    }
+  };
+
+  // Handle Specialization selection
+  const handleSpecializationChange = (e) => {
+    const specializationId = e.target.value;
+    setAppointmentForm(prev => ({ ...prev, Specialization: specializationId }));
+    setFormSteps(prev => ({ ...prev, step2: !!specializationId }));
+    
+    if (specializationId) {
+      loadAvailableDoctors(specializationId);
+    } else {
+      setAvailableDoctors([]);
+      setFormSteps(prev => ({ ...prev, step2: false, step3: false, step4: false, step5: false }));
+    }
+  };
+
+  // Handle Doctor selection
+  const handleDoctorChange = (e) => {
+    const doctorId = e.target.value;
+    setAppointmentForm(prev => ({ ...prev, DoctorId: doctorId }));
+    setFormSteps(prev => ({ ...prev, step3: !!doctorId }));
+    
+    if (doctorId) {
+      loadAvailableDates(doctorId);
+    } else {
+      setAvailableDates([]);
+      setFormSteps(prev => ({ ...prev, step3: false, step4: false, step5: false }));
+    }
+  };
+
+  // Handle Date selection
+  const handleDateChange = (e) => {
+    const date = e.target.value;
+    setAppointmentForm(prev => ({ ...prev, Date: date }));
+    setFormSteps(prev => ({ ...prev, step4: !!date }));
+    
+    if (date && appointmentForm.DoctorId) {
+      const token = generateTokenNumber(appointmentForm.DoctorId, date);
+      setAppointmentForm(prev => ({ ...prev, TokenNo: token }));
+      setFormSteps(prev => ({ ...prev, step5: !!token }));
+    }
+  };
+
   const handleAppointmentSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
-      const response = await AppointmentManagementApi.create(appointmentForm);
+      // Use generated token if available
+      const finalToken = generatedToken || appointmentForm.TokenNo;
+      const payload = {
+        ...appointmentForm,
+        TokenNo: finalToken
+      };
+      
+      const response = await AppointmentManagementApi.create(payload);
       setSuccess('Appointment booked successfully');
       setShowAppointmentModal(false);
+      
+      // Reset form
       setAppointmentForm({
-        DoctorId: '',
         PatientId: '',
-        TokenNo: '',
+        Specialization: '',
+        DoctorId: '',
         Date: '',
+        TokenNo: '',
         Status: 'SCHEDULED'
       });
+      setFormSteps({
+        step1: false,
+        step2: false,
+        step3: false,
+        step4: false,
+        step5: false
+      });
+      setGeneratedToken(null);
+      setAvailableDoctors([]);
+      setAvailableDates([]);
+      
       loadAppointments();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to book appointment');
@@ -190,6 +375,17 @@ function ReceptionistDashboard({ selectedSection }) {
       setLoading(false);
     }
   };
+
+  // Load specializations and patients when modal opens
+  useEffect(() => {
+    if (showAppointmentModal) {
+      loadSpecializations();
+      // Also ensure patients are loaded
+      if (patients.length === 0) {
+        loadPatients();
+      }
+    }
+  }, [showAppointmentModal]);
 
   // Recent Activity Functions
   const loadRecentActivity = async () => {
@@ -534,22 +730,26 @@ function ReceptionistDashboard({ selectedSection }) {
         </tbody>
       </Table>
 
-      {/* Add Appointment Modal */}
-      <Modal show={showAppointmentModal} onHide={() => setShowAppointmentModal(false)}>
+      {/* Add Appointment Modal - Sequential Flow */}
+      <Modal show={showAppointmentModal} onHide={() => setShowAppointmentModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>Book New Appointment</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleAppointmentSubmit}>
           <Modal.Body>
             <Row className="g-3">
-              <Col md={6}>
+              {/* Step 1: Patient ID */}
+              <Col md={12}>
                 <Form.Group>
-                  <Form.Label>Patient *</Form.Label>
+                  <Form.Label>Patient ID *</Form.Label>
                   <Form.Select
-                    name="PatientId"
                     value={appointmentForm.PatientId}
-                    onChange={(e) => setAppointmentForm({...appointmentForm, [e.target.name]: e.target.value})}
+                    onChange={handlePatientIdChange}
                     required
+                    style={{ 
+                      backgroundColor: formSteps.step1 ? '#e8f5e9' : '#fff',
+                      transition: 'background-color 0.3s ease'
+                    }}
                   >
                     <option value="">Select Patient</option>
                     {patients.map(patient => (
@@ -558,51 +758,150 @@ function ReceptionistDashboard({ selectedSection }) {
                       </option>
                     ))}
                   </Form.Select>
+                  <Form.Text className="text-muted">
+                    Step 1 of 6: Select a patient to continue
+                  </Form.Text>
                 </Form.Group>
               </Col>
-              <Col md={6}>
+
+              {/* Step 2: Specialization */}
+              <Col md={12}>
                 <Form.Group>
-                  <Form.Label>Doctor *</Form.Label>
+                  <Form.Label>Specialization *</Form.Label>
                   <Form.Select
-                    name="DoctorId"
-                    value={appointmentForm.DoctorId}
-                    onChange={(e) => setAppointmentForm({...appointmentForm, [e.target.name]: e.target.value})}
+                    name="Specialization"
+                    value={appointmentForm.Specialization}
+                    onChange={handleSpecializationChange}
                     required
+                    disabled={!formSteps.step1}
+                    style={{ 
+                      backgroundColor: formSteps.step2 ? '#e8f5e9' : !formSteps.step1 ? '#f5f5f5' : '#fff',
+                      cursor: formSteps.step1 ? 'pointer' : 'not-allowed'
+                    }}
                   >
-                    <option value="">Select Doctor</option>
-                    {doctors.map(doctor => (
-                      <option key={doctor.id} value={doctor.id}>
-                        {doctor.name} - {doctor.specialization}
+                    <option value="">
+                      {formSteps.step1 ? 'Select Specialization' : 'Complete Patient ID first'}
+                    </option>
+                    {formSteps.step1 && specializations.map(spec => (
+                      <option key={spec.id || spec.SpecializationId} value={spec.id || spec.SpecializationId}>
+                        {spec.name || spec.SpecializationName}
                       </option>
                     ))}
                   </Form.Select>
+                  <Form.Text className="text-muted">
+                    Step 2 of 6: Select a specialization to filter doctors
+                  </Form.Text>
                 </Form.Group>
               </Col>
-              <Col md={6}>
+
+              {/* Step 3: Available Doctors */}
+              <Col md={12}>
                 <Form.Group>
-                  <Form.Label>Date *</Form.Label>
-                  <Form.Control
-                    type="date"
-                    name="Date"
-                    value={appointmentForm.Date}
-                    onChange={(e) => setAppointmentForm({...appointmentForm, [e.target.name]: e.target.value})}
-                    min={new Date().toISOString().split('T')[0]}
+                  <Form.Label>Available Doctors *</Form.Label>
+                  <Form.Select
+                    name="DoctorId"
+                    value={appointmentForm.DoctorId}
+                    onChange={handleDoctorChange}
                     required
-                  />
+                    disabled={!formSteps.step2}
+                    style={{ 
+                      backgroundColor: formSteps.step3 ? '#e8f5e9' : !formSteps.step2 ? '#f5f5f5' : '#fff',
+                      cursor: formSteps.step2 ? 'pointer' : 'not-allowed'
+                    }}
+                  >
+                    <option value="">
+                      {formSteps.step2 ? (availableDoctors.length > 0 ? 'Select Doctor' : 'No available doctors') : 'Complete Specialization first'}
+                    </option>
+                    {formSteps.step2 && availableDoctors.map(doctor => (
+                      <option key={doctor.DoctorId || doctor.id} value={doctor.DoctorId || doctor.id}>
+                        Dr. {doctor.first_name || doctor.FirstName} {doctor.last_name || doctor.LastName} 
+                        {doctor.consultation_fee && ` - Fee: ₹${doctor.consultation_fee || doctor.ConsultationFee}`}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Form.Text className="text-muted">
+                    Step 3 of 6: Choose an available doctor from the list
+                  </Form.Text>
                 </Form.Group>
               </Col>
+
+              {/* Step 4: Date Selection */}
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label>Appointment Date *</Form.Label>
+                  {availableDates.length > 0 ? (
+                    <>
+                      <Form.Select
+                        value={appointmentForm.Date}
+                        onChange={handleDateChange}
+                        required
+                        disabled={!formSteps.step3}
+                        style={{ 
+                          backgroundColor: formSteps.step4 ? '#e8f5e9' : !formSteps.step3 ? '#f5f5f5' : '#fff',
+                          cursor: formSteps.step3 ? 'pointer' : 'not-allowed'
+                        }}
+                      >
+                        <option value="">Select an available date</option>
+                        {availableDates.map(date => (
+                          <option key={date} value={date}>
+                            {new Date(date).toLocaleDateString('en-US', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </option>
+                        ))}
+                      </Form.Select>
+                      <Form.Text className="text-muted">
+                        Step 4 of 6: Select from available dates based on doctor's consultation schedule
+                      </Form.Text>
+                    </>
+                  ) : (
+                    <>
+                      <Form.Control
+                        type="date"
+                        name="Date"
+                        value={appointmentForm.Date}
+                        onChange={handleDateChange}
+                        required
+                        disabled={!formSteps.step3}
+                        min={new Date().toISOString().split('T')[0]}
+                        style={{ 
+                          backgroundColor: !formSteps.step3 ? '#f5f5f5' : '#fff',
+                          cursor: formSteps.step3 ? 'pointer' : 'not-allowed'
+                        }}
+                      />
+                      <Form.Text className="text-warning">
+                        Step 4 of 6: No available dates for this doctor. Please select another doctor.
+                      </Form.Text>
+                    </>
+                  )}
+                </Form.Group>
+              </Col>
+
+              {/* Step 5: Auto-generated Token */}
               <Col md={6}>
                 <Form.Group>
-                  <Form.Label>Token Number *</Form.Label>
+                  <Form.Label>Token Number (Auto-generated)</Form.Label>
                   <Form.Control
                     type="number"
-                    name="TokenNo"
-                    value={appointmentForm.TokenNo}
-                    onChange={(e) => setAppointmentForm({...appointmentForm, [e.target.name]: e.target.value})}
-                    required
+                    value={generatedToken || appointmentForm.TokenNo || ''}
+                    readOnly
+                    disabled
+                    style={{ 
+                      backgroundColor: formSteps.step5 ? '#e3f2fd' : '#f5f5f5',
+                      cursor: 'default',
+                      fontWeight: 'bold'
+                    }}
                   />
+                  <Form.Text className="text-success">
+                    {formSteps.step5 ? `✓ Token generated automatically` : 'Complete date selection to generate token'}
+                  </Form.Text>
                 </Form.Group>
               </Col>
+
+              {/* Step 6: Status (defaults to Scheduled) */}
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Status</Form.Label>
@@ -612,22 +911,45 @@ function ReceptionistDashboard({ selectedSection }) {
                     onChange={(e) => setAppointmentForm({...appointmentForm, [e.target.name]: e.target.value})}
                   >
                     <option value="SCHEDULED">Scheduled</option>
-                    <option value="CONFIRMED">Confirmed</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
-                    <option value="CANCELLED">Cancelled</option>
-                    <option value="NO_SHOW">No Show</option>
                   </Form.Select>
+                  <Form.Text className="text-muted">
+                    Default status: Scheduled
+                  </Form.Text>
                 </Form.Group>
               </Col>
             </Row>
           </Modal.Body>
           <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowAppointmentModal(false)}>
+            <Button 
+              variant="secondary" 
+              onClick={() => {
+                setShowAppointmentModal(false);
+                // Reset form
+                setAppointmentForm({
+                  PatientId: '',
+                  Specialization: '',
+                  DoctorId: '',
+                  Date: '',
+                  TokenNo: '',
+                  Status: 'SCHEDULED'
+                });
+                setFormSteps({
+                  step1: false,
+                  step2: false,
+                  step3: false,
+                  step4: false,
+                  step5: false
+                });
+              }}
+            >
               Cancel
             </Button>
-            <Button variant="success" type="submit" disabled={loading}>
-              {loading ? <Spinner animation="border" size="sm" /> : 'Book Appointment'}
+            <Button 
+              variant="success" 
+              type="submit" 
+              disabled={loading || !formSteps.step5}
+            >
+              {loading ? <><Spinner animation="border" size="sm" className="me-2" /> Booking...</> : 'Book Appointment'}
             </Button>
           </Modal.Footer>
         </Form>

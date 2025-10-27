@@ -320,7 +320,8 @@ section:nth-child(8) { animation-delay: 0.8s; }
   
   /* Mobile sidebar adjustments - HIDE by default, show when toggled */
   .sidebar-container,
-  .bg-light.border-end {
+  .bg-light.border-end,
+  .doctor-sidebar {
     position: fixed !important;
     top: 0;
     left: -100% !important; /* Hidden off-screen */
@@ -851,6 +852,57 @@ footer {
   z-index: 3;
 }
 
+/* Doctor Dashboard Specific Styles */
+.doctor-dashboard {
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.doctor-main-content {
+  padding: 20px;
+  padding-top: 80px;
+  overflow-y: auto;
+  height: 100vh;
+}
+
+.doctor-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.doctor-section-header h2 {
+  margin: 0;
+  font-weight: 600;
+  color: #333;
+}
+
+.doctor-add-button {
+  padding: 10px 20px;
+  font-weight: 500;
+}
+
+/* Ensure buttons are always visible */
+.doctor-dashboard .btn {
+  position: relative;
+  z-index: 5;
+}
+
+/* Fix for modal positioning */
+.doctor-dashboard .modal {
+  z-index: 1050;
+}
+
+/* Ensure proper spacing for table headers */
+.doctor-dashboard .table thead th {
+  background-color: #f8f9fa;
+  border-bottom: 2px solid #dee2e6;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+
 /* Admin Doctor Form Enhancements */
 
 /* Time Picker Styles */
@@ -1158,6 +1210,28 @@ img {
 .nav-link.active {
   background-color: #0d6efd;
   color: white;
+}
+
+/* Search Bar Styles */
+.search-input {
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  border-color: #0d6efd !important;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25) !important;
+}
+
+.search-input:hover {
+  border-color: #86b7fe;
+}
+
+/* Search input on mobile */
+@media (max-width: 768px) {
+  .search-input {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    padding: 0.75rem !important;
+  }
 }
 
 /* Print Styles */

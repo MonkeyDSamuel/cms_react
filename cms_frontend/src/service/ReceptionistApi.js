@@ -45,5 +45,17 @@ export const DoctorManagementApi = {
   },
   getById(doctorId) {
     return api.get(`receptionist/doctors/${doctorId}/`);
+  },
+  // Get all specializations
+  getSpecializations() {
+    return api.get('specialization/');
+  },
+  // Get available doctors by specialization
+  getAvailableDoctors(specializationId) {
+    return api.get(`receptionist/doctors/by-specialization/${specializationId}/`);
+  },
+  // Get available dates for a doctor
+  getAvailableDates(doctorId) {
+    return api.get(`receptionist/doctors/${doctorId}/available-dates/`);
   }
 };
