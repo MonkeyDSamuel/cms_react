@@ -10,6 +10,8 @@ function ReceptionistDashboard({ selectedSection }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  // Validation Errors
+  const [validationErrors, setValidationErrors] = useState({ patient: {}, appointment: {} });
 
   // Patient Management State
   const [patients, setPatients] = useState([]);
@@ -81,6 +83,65 @@ function ReceptionistDashboard({ selectedSection }) {
     }
   }, [selectedSection]);
 
+  // =====================
+  // Validation Utilities
+  // =====================
+  const validatePatientForm = (data) => {
+    const errors = {};
+    const name = (data.Name || '').trim();
+    if (!name) errors.Name = 'Full name is required';
+    else if (!/^[A-Za-z][A-Za-z\s'.-]{1,98}[A-Za-z]$/.test(name)) errors.Name = 'Enter a valid full name';
+
+    const age = Number(data.Age);
+    if (!data.Age && data.Age !== 0) errors.Age = 'Age is required';
+    else if (!Number.isInteger(age) || age < 0 || age > 120) errors.Age = 'Age must be between 0 and 120';
+
+    if (!data.Gender) errors.Gender = 'Gender is required';
+    else if (!['M', 'F', 'O'].includes(data.Gender)) errors.Gender = 'Invalid gender';
+
+    if (!data.DOB) errors.DOB = 'Date of birth is required';
+    else {
+      const dob = new Date(data.DOB);
+      const today = new Date();
+      if (Number.isNaN(dob.getTime())) errors.DOB = 'Invalid date of birth';
+      else if (dob > today) errors.DOB = 'DOB cannot be in the future';
+    }
+
+    const height = Number(data.Height);
+    if (data.Height === '' || data.Height === null || data.Height === undefined) errors.Height = 'Height is required';
+    else if (height < 30 || height > 250) errors.Height = 'Height must be between 30 and 250 cm';
+
+    const weight = Number(data.Weight);
+    if (data.Weight === '' || data.Weight === null || data.Weight === undefined) errors.Weight = 'Weight is required';
+    else if (weight < 2 || weight > 300) errors.Weight = 'Weight must be between 2 and 300 kg';
+
+    const phone = (data.PhoneNumber || '').trim();
+    if (!phone) errors.PhoneNumber = 'Phone number is required';
+    else if (!/^\+?[0-9]{10,14}$/.test(phone)) errors.PhoneNumber = 'Enter a valid phone number';
+
+    const emergency = (data.EmergencyNumber || '').trim();
+    if (!emergency) errors.EmergencyNumber = 'Emergency number is required';
+    else if (!/^\+?[0-9]{10,14}$/.test(emergency)) errors.EmergencyNumber = 'Enter a valid emergency number';
+    else if (emergency === phone) errors.EmergencyNumber = 'Emergency number must differ from phone number';
+
+    const address = (data.Address || '').trim();
+    if (!address) errors.Address = 'Address is required';
+    else if (address.length < 5) errors.Address = 'Address is too short';
+
+    return errors;
+  };
+
+  const validateAppointmentForm = (data) => {
+    const errors = {};
+    if (!data.PatientId) errors.PatientId = 'Patient is required';
+    if (!data.Specialization) errors.Specialization = 'Specialization is required';
+    if (!data.DoctorId) errors.DoctorId = 'Doctor is required';
+    if (!data.Date) errors.Date = 'Date is required';
+    else if (availableDates.length > 0 && !availableDates.includes(data.Date)) errors.Date = 'Select one of the available dates';
+    if (!data.TokenNo && !generatedToken) errors.TokenNo = 'Token not generated';
+    return errors;
+  };
+
   // Patient Management Functions
   const loadPatients = async () => {
     setLoading(true);
@@ -111,11 +172,19 @@ function ReceptionistDashboard({ selectedSection }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+    // Validate
+    const errors = validatePatientForm(patientForm);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(prev => ({ ...prev, patient: errors }));
+      setLoading(false);
+      return;
+    }
     
     try {
       const response = await PatientManagementApi.create(patientForm);
       setSuccess('Patient created successfully');
       setShowPatientModal(false);
+      setValidationErrors(prev => ({ ...prev, patient: {} }));
       setPatientForm({
         Name: '',
         Age: '',
@@ -334,6 +403,13 @@ function ReceptionistDashboard({ selectedSection }) {
     e.preventDefault();
     setLoading(true);
     setError('');
+    // Validate
+    const errors = validateAppointmentForm(appointmentForm);
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(prev => ({ ...prev, appointment: errors }));
+      setLoading(false);
+      return;
+    }
     
     try {
       // Use generated token if available
@@ -346,6 +422,7 @@ function ReceptionistDashboard({ selectedSection }) {
       const response = await AppointmentManagementApi.create(payload);
       setSuccess('Appointment booked successfully');
       setShowAppointmentModal(false);
+      setValidationErrors(prev => ({ ...prev, appointment: {} }));
       
       // Reset form
       setAppointmentForm({
@@ -534,7 +611,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.Name}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.Name}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.Name}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={3}>
@@ -546,7 +627,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.Age}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.Age}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.Age}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={3}>
@@ -557,7 +642,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.Gender}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.Gender}
                   >
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.Gender}
+                  </Form.Control.Feedback>
                     <option value="">Select Gender</option>
                     <option value="M">Male</option>
                     <option value="F">Female</option>
@@ -574,7 +663,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.DOB}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.DOB}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.DOB}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={3}>
@@ -587,7 +680,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.Height}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.Height}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.Height}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={3}>
@@ -600,7 +697,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.Weight}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.Weight}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.Weight}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={6}>
@@ -611,7 +712,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.PhoneNumber}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.PhoneNumber}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.PhoneNumber}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={6}>
@@ -622,7 +727,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.EmergencyNumber}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.EmergencyNumber}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.EmergencyNumber}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={12}>
@@ -635,7 +744,11 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={patientForm.Address}
                     onChange={(e) => setPatientForm({...patientForm, [e.target.name]: e.target.value})}
                     required
+                    isInvalid={!!validationErrors.patient?.Address}
                   />
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.patient?.Address}
+                  </Form.Control.Feedback>
                 </Form.Group>
               </Col>
             </Row>
@@ -746,11 +859,15 @@ function ReceptionistDashboard({ selectedSection }) {
                     value={appointmentForm.PatientId}
                     onChange={handlePatientIdChange}
                     required
+                    isInvalid={!!validationErrors.appointment?.PatientId}
                     style={{ 
                       backgroundColor: formSteps.step1 ? '#e8f5e9' : '#fff',
                       transition: 'background-color 0.3s ease'
                     }}
                   >
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.appointment?.PatientId}
+                  </Form.Control.Feedback>
                     <option value="">Select Patient</option>
                     {patients.map(patient => (
                       <option key={patient.id || patient.PatientId} value={patient.id || patient.PatientId}>
@@ -774,11 +891,15 @@ function ReceptionistDashboard({ selectedSection }) {
                     onChange={handleSpecializationChange}
                     required
                     disabled={!formSteps.step1}
+                    isInvalid={!!validationErrors.appointment?.Specialization}
                     style={{ 
                       backgroundColor: formSteps.step2 ? '#e8f5e9' : !formSteps.step1 ? '#f5f5f5' : '#fff',
                       cursor: formSteps.step1 ? 'pointer' : 'not-allowed'
                     }}
                   >
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.appointment?.Specialization}
+                  </Form.Control.Feedback>
                     <option value="">
                       {formSteps.step1 ? 'Select Specialization' : 'Complete Patient ID first'}
                     </option>
@@ -804,11 +925,15 @@ function ReceptionistDashboard({ selectedSection }) {
                     onChange={handleDoctorChange}
                     required
                     disabled={!formSteps.step2}
+                    isInvalid={!!validationErrors.appointment?.DoctorId}
                     style={{ 
                       backgroundColor: formSteps.step3 ? '#e8f5e9' : !formSteps.step2 ? '#f5f5f5' : '#fff',
                       cursor: formSteps.step2 ? 'pointer' : 'not-allowed'
                     }}
                   >
+                  <Form.Control.Feedback type="invalid">
+                    {validationErrors.appointment?.DoctorId}
+                  </Form.Control.Feedback>
                     <option value="">
                       {formSteps.step2 ? (availableDoctors.length > 0 ? 'Select Doctor' : 'No available doctors') : 'Complete Specialization first'}
                     </option>
@@ -836,6 +961,7 @@ function ReceptionistDashboard({ selectedSection }) {
                         onChange={handleDateChange}
                         required
                         disabled={!formSteps.step3}
+                        isInvalid={!!validationErrors.appointment?.Date}
                         style={{ 
                           backgroundColor: formSteps.step4 ? '#e8f5e9' : !formSteps.step3 ? '#f5f5f5' : '#fff',
                           cursor: formSteps.step3 ? 'pointer' : 'not-allowed'
@@ -853,6 +979,9 @@ function ReceptionistDashboard({ selectedSection }) {
                           </option>
                         ))}
                       </Form.Select>
+                      <Form.Control.Feedback type="invalid">
+                        {validationErrors.appointment?.Date}
+                      </Form.Control.Feedback>
                       <Form.Text className="text-muted">
                         Step 4 of 6: Select from available dates based on doctor's consultation schedule
                       </Form.Text>
@@ -867,11 +996,15 @@ function ReceptionistDashboard({ selectedSection }) {
                         required
                         disabled={!formSteps.step3}
                         min={new Date().toISOString().split('T')[0]}
+                        isInvalid={!!validationErrors.appointment?.Date}
                         style={{ 
                           backgroundColor: !formSteps.step3 ? '#f5f5f5' : '#fff',
                           cursor: formSteps.step3 ? 'pointer' : 'not-allowed'
                         }}
                       />
+                      <Form.Control.Feedback type="invalid">
+                        {validationErrors.appointment?.Date}
+                      </Form.Control.Feedback>
                       <Form.Text className="text-warning">
                         Step 4 of 6: No available dates for this doctor. Please select another doctor.
                       </Form.Text>

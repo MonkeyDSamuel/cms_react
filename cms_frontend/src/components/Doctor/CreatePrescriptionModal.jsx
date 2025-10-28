@@ -15,6 +15,7 @@ const CreatePrescriptionModal = ({ show, onHide, type, staffId }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
 
   // Load consultations when modal opens
   useEffect(() => {
@@ -40,12 +41,33 @@ const CreatePrescriptionModal = ({ show, onHide, type, staffId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const errors = {};
     if (!selectedConsultation) {
-      setError('Please select a consultation');
-      return;
+      errors.selectedConsultation = 'Please select a consultation';
     }
 
     try {
+      // Validate notes length (optional but limited)
+      if (notes && notes.trim().length > 1000) {
+        errors.notes = 'Notes cannot exceed 1000 characters';
+      }
+
+      // Lab validations
+      if (type === 'lab') {
+        if (!testName.trim()) errors.testName = 'Test name is required';
+        if (!testType.trim()) errors.testType = 'Test type is required';
+        if (!testInstructions.trim()) errors.testInstructions = 'Test instructions are required';
+        if (testName.length > 120) errors.testName = 'Test name is too long';
+        if (testType.length > 120) errors.testType = 'Test type is too long';
+        if (testInstructions.length > 1000) errors.testInstructions = 'Instructions cannot exceed 1000 characters';
+      }
+
+      if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        return;
+      }
+
+      setValidationErrors({});
       setLoading(true);
       setError('');
       setSuccess('');
@@ -152,6 +174,7 @@ const CreatePrescriptionModal = ({ show, onHide, type, staffId }) => {
               value={selectedConsultation}
               onChange={(e) => setSelectedConsultation(e.target.value)}
               required
+              isInvalid={!!validationErrors.selectedConsultation}
             >
               <option value="">Choose a consultation...</option>
               {consultations.map((consultation) => (
@@ -164,6 +187,9 @@ const CreatePrescriptionModal = ({ show, onHide, type, staffId }) => {
               Select the consultation for which you want to create this prescription
             </Form.Text>
           </Form.Group>
+          {validationErrors.selectedConsultation && (
+            <div className="text-danger small mb-2">{validationErrors.selectedConsultation}</div>
+          )}
 
           <Form.Group className="mb-3">
             <Form.Label>Notes</Form.Label>
@@ -190,7 +216,9 @@ const CreatePrescriptionModal = ({ show, onHide, type, staffId }) => {
                   onChange={(e) => setTestName(e.target.value)}
                   placeholder="Enter test name (e.g., Complete Blood Count)"
                   required
+                  isInvalid={!!validationErrors.testName}
                 />
+                <Form.Control.Feedback type="invalid">{validationErrors.testName}</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -201,7 +229,9 @@ const CreatePrescriptionModal = ({ show, onHide, type, staffId }) => {
                   onChange={(e) => setTestType(e.target.value)}
                   placeholder="Enter test type (e.g., Blood Test, Urine Test)"
                   required
+                  isInvalid={!!validationErrors.testType}
                 />
+                <Form.Control.Feedback type="invalid">{validationErrors.testType}</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -213,7 +243,9 @@ const CreatePrescriptionModal = ({ show, onHide, type, staffId }) => {
                   onChange={(e) => setTestInstructions(e.target.value)}
                   placeholder="Enter specific instructions for the test"
                   required
+                  isInvalid={!!validationErrors.testInstructions}
                 />
+                <Form.Control.Feedback type="invalid">{validationErrors.testInstructions}</Form.Control.Feedback>
               </Form.Group>
 
               <Form.Group className="mb-3">

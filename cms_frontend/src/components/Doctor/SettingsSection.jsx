@@ -38,6 +38,7 @@ const SettingsSection = () => {
       passwordExpiry: 90
     }
   });
+  const [validationErrors, setValidationErrors] = useState({});
 
   const handleInputChange = (section, field, value) => {
     setSettings(prev => ({
@@ -63,6 +64,33 @@ const SettingsSection = () => {
   };
 
   const handleSave = () => {
+    const errors = {};
+    // Basic validations
+    if (!settings.profile.firstName || settings.profile.firstName.trim().length < 2) errors.firstName = 'First name is required';
+    if (!settings.profile.lastName || settings.profile.lastName.trim().length < 2) errors.lastName = 'Last name is required';
+    if (!settings.profile.email) errors.email = 'Email is required';
+    else {
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRe.test(settings.profile.email)) errors.email = 'Enter a valid email';
+    }
+    if (settings.profile.phone) {
+      if (!/^\+?[0-9\-()\s]{7,20}$/.test(settings.profile.phone)) errors.phone = 'Enter a valid phone number';
+    }
+    // Preferences
+    if (!settings.preferences.workingHours.start) errors.workingStart = 'Working start time required';
+    if (!settings.preferences.workingHours.end) errors.workingEnd = 'Working end time required';
+    if (settings.preferences.workingHours.start && settings.preferences.workingHours.end && settings.preferences.workingHours.start >= settings.preferences.workingHours.end) errors.workingTime = 'End time must be after start time';
+    if (settings.preferences.appointmentDuration <= 0) errors.appointmentDuration = 'Duration must be positive';
+    if (settings.preferences.maxPatientsPerDay <= 0) errors.maxPatientsPerDay = 'Max patients must be positive';
+    // Security
+    if (settings.security.sessionTimeout <= 0) errors.sessionTimeout = 'Session timeout must be positive';
+    if (settings.security.passwordExpiry <= 0) errors.passwordExpiry = 'Password expiry must be positive';
+
+    if (Object.keys(errors).length > 0) {
+      setValidationErrors(errors);
+      return;
+    }
+    setValidationErrors({});
     // Here you would typically save to backend
     alert('Settings saved successfully!');
   };
@@ -124,7 +152,9 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.profile.firstName}
                         onChange={(e) => handleInputChange('profile', 'firstName', e.target.value)}
+                        aria-invalid={!!validationErrors.firstName}
                       />
+                      {validationErrors.firstName && (<div className="text-danger small mt-1">{validationErrors.firstName}</div>)}
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Last Name</label>
@@ -133,7 +163,9 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.profile.lastName}
                         onChange={(e) => handleInputChange('profile', 'lastName', e.target.value)}
+                        aria-invalid={!!validationErrors.lastName}
                       />
+                      {validationErrors.lastName && (<div className="text-danger small mt-1">{validationErrors.lastName}</div>)}
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Email</label>
@@ -142,7 +174,9 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.profile.email}
                         onChange={(e) => handleInputChange('profile', 'email', e.target.value)}
+                        aria-invalid={!!validationErrors.email}
                       />
+                      {validationErrors.email && (<div className="text-danger small mt-1">{validationErrors.email}</div>)}
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Phone</label>
@@ -151,7 +185,9 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.profile.phone}
                         onChange={(e) => handleInputChange('profile', 'phone', e.target.value)}
+                        aria-invalid={!!validationErrors.phone}
                       />
+                      {validationErrors.phone && (<div className="text-danger small mt-1">{validationErrors.phone}</div>)}
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Specialization</label>
@@ -221,7 +257,11 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.preferences.workingHours.start}
                         onChange={(e) => handleNestedInputChange('preferences', 'workingHours', 'start', e.target.value)}
+                        aria-invalid={!!validationErrors.workingStart || !!validationErrors.workingTime}
                       />
+                      {(validationErrors.workingStart || validationErrors.workingTime) && (
+                        <div className="text-danger small mt-1">{validationErrors.workingStart || validationErrors.workingTime}</div>
+                      )}
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Working Hours End</label>
@@ -230,7 +270,11 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.preferences.workingHours.end}
                         onChange={(e) => handleNestedInputChange('preferences', 'workingHours', 'end', e.target.value)}
+                        aria-invalid={!!validationErrors.workingEnd || !!validationErrors.workingTime}
                       />
+                      {(validationErrors.workingEnd || validationErrors.workingTime) && (
+                        <div className="text-danger small mt-1">{validationErrors.workingEnd || validationErrors.workingTime}</div>
+                      )}
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Appointment Duration (minutes)</label>
@@ -239,7 +283,9 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.preferences.appointmentDuration}
                         onChange={(e) => handleInputChange('preferences', 'appointmentDuration', parseInt(e.target.value))}
+                        aria-invalid={!!validationErrors.appointmentDuration}
                       />
+                      {validationErrors.appointmentDuration && (<div className="text-danger small mt-1">{validationErrors.appointmentDuration}</div>)}
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Max Patients Per Day</label>
@@ -248,7 +294,9 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.preferences.maxPatientsPerDay}
                         onChange={(e) => handleInputChange('preferences', 'maxPatientsPerDay', parseInt(e.target.value))}
+                        aria-invalid={!!validationErrors.maxPatientsPerDay}
                       />
+                      {validationErrors.maxPatientsPerDay && (<div className="text-danger small mt-1">{validationErrors.maxPatientsPerDay}</div>)}
                     </div>
                     <div className="col-12">
                       <div className="form-check form-switch mb-3">
@@ -292,7 +340,9 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.security.sessionTimeout}
                         onChange={(e) => handleInputChange('security', 'sessionTimeout', parseInt(e.target.value))}
+                        aria-invalid={!!validationErrors.sessionTimeout}
                       />
+                      {validationErrors.sessionTimeout && (<div className="text-danger small mt-1">{validationErrors.sessionTimeout}</div>)}
                     </div>
                     <div className="col-md-6 mb-3">
                       <label className="form-label">Password Expiry (days)</label>
@@ -301,7 +351,9 @@ const SettingsSection = () => {
                         className="form-control"
                         value={settings.security.passwordExpiry}
                         onChange={(e) => handleInputChange('security', 'passwordExpiry', parseInt(e.target.value))}
+                        aria-invalid={!!validationErrors.passwordExpiry}
                       />
+                      {validationErrors.passwordExpiry && (<div className="text-danger small mt-1">{validationErrors.passwordExpiry}</div>)}
                     </div>
                     <div className="col-12">
                       <div className="form-check form-switch mb-3">

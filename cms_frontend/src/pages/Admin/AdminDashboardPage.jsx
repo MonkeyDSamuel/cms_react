@@ -228,6 +228,8 @@ function AddStaff() {
   const [consultationDays, setConsultationDays] = useState([]);
   const [consultationStartTime, setConsultationStartTime] = useState('');
   const [consultationEndTime, setConsultationEndTime] = useState('');
+  // Validation errors
+  const [validationErrors, setValidationErrors] = useState({ staff: {}, doctor: {} });
 
   // Day mapping for consultation days
   const dayMapping = {
@@ -412,10 +414,115 @@ function AddStaff() {
     setSpecializationError('');
     setSpecializationSuccess('');
 
+    // -----------------
+    // Client-side validation
+    // -----------------
+    const staffErrors = {};
+    const doctorErrors = {};
+    // Staff validations
+    // Username: no spaces, at least 3 characters
+    if (!form.user.username || form.user.username.trim().length < 3) {
+      staffErrors.username = 'Username must be at least 3 characters';
+    } else if (/\s/.test(form.user.username)) {
+      staffErrors.username = 'Username cannot contain spaces';
+    }
+    
+    // Password: no spaces, at least 6 characters
+    if (!form.user.password || form.user.password.length < 6) {
+      staffErrors.password = 'Password must be at least 6 characters';
+    } else if (/\s/.test(form.user.password)) {
+      staffErrors.password = 'Password cannot contain spaces';
+    }
+    
+    // First name: only characters and ".", at least 2 characters
+    if (!form.FirstName || form.FirstName.trim().length < 2) {
+      staffErrors.FirstName = 'First name is required and must be at least 2 characters';
+    } else if (!/^[A-Za-z.]+$/.test(form.FirstName.trim())) {
+      staffErrors.FirstName = 'First name can only contain letters and "."';
+    }
+    
+    // Last name: only characters and ".", at least 2 characters
+    if (!form.LastName || form.LastName.trim().length < 2) {
+      staffErrors.LastName = 'Last name is required and must be at least 2 characters';
+    } else if (!/^[A-Za-z.]+$/.test(form.LastName.trim())) {
+      staffErrors.LastName = 'Last name can only contain letters and "."';
+    }
+    
+    // Email validation
+    if (form.Email) {
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRe.test(form.Email)) staffErrors.Email = 'Enter a valid email';
+    } else {
+      staffErrors.Email = 'Email is required';
+    }
+    
+    // Contact: exactly 10 digits, must start with 6, 7, 8, or 9
+    if (!form.Contact || form.Contact.trim().length === 0) {
+      staffErrors.Contact = 'Contact number is required';
+    } else {
+      const contactClean = form.Contact.trim().replace(/\D/g, ''); // Remove non-digits
+      if (!/^[6789]\d{9}$/.test(contactClean)) {
+        staffErrors.Contact = 'Contact must be exactly 10 digits and start with 6, 7, 8, or 9';
+      }
+    }
+    
+    // Address validation
+    if (!form.Address || form.Address.trim().length < 5) staffErrors.Address = 'Address is required';
+    
+    // DOB: must be between ages 18-60
+    if (!form.DOB || form.DOB.trim().length === 0) {
+      staffErrors.DOB = 'Date of birth is required';
+    } else {
+      const dob = new Date(form.DOB);
+      if (Number.isNaN(dob.getTime())) {
+        staffErrors.DOB = 'Invalid date';
+      } else if (dob > new Date()) {
+        staffErrors.DOB = 'Date of birth cannot be in the future';
+      } else {
+        const today = new Date();
+        const age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        const dayDiff = today.getDate() - dob.getDate();
+        const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+        
+        if (actualAge < 18) {
+          staffErrors.DOB = 'Date of birth must be at least 18 years ago';
+        } else if (actualAge > 60) {
+          staffErrors.DOB = 'Date of birth must be no more than 60 years ago';
+        }
+      }
+    }
+
+    // Doctor validations (only when DOC)
+    if (form.Role === 'DOC') {
+      if (!doctorForm.specialization_id) doctorErrors.specialization_id = 'Specialization is required';
+      const fee = Number(doctorForm.ConsultationFee);
+      if (!doctorForm.ConsultationFee && doctorForm.ConsultationFee !== 0) doctorErrors.ConsultationFee = 'Consultation fee is required';
+      else if (Number.isNaN(fee) || fee <= 0) doctorErrors.ConsultationFee = 'Consultation fee must be a positive number';
+      if (consultationDays.length === 0) doctorErrors.ConsultationDays = 'Select at least one day';
+      if (!consultationStartTime) doctorErrors.ConsultationStartTime = 'Start time is required';
+      if (!consultationEndTime) doctorErrors.ConsultationEndTime = 'End time is required';
+      if (consultationStartTime && consultationEndTime && consultationStartTime >= consultationEndTime) doctorErrors.ConsultationTime = 'End time must be after start time';
+      const exp = Number(doctorForm.YearsOfExperience);
+      if (doctorForm.YearsOfExperience === '' || Number.isNaN(exp) || exp < 0 || exp > 80) doctorErrors.YearsOfExperience = 'Enter valid years of experience';
+    }
+
+    if (Object.keys(staffErrors).length > 0 || Object.keys(doctorErrors).length > 0) {
+      setValidationErrors({ staff: staffErrors, doctor: doctorErrors });
+      setSubmitting(false);
+      return;
+    }
+    setValidationErrors({ staff: {}, doctor: {} });
+
     try {
       // Step 1: Create staff member
-      console.log('DEBUG FRONTEND: Creating staff with form data:', form);
-      const staffResponse = await StaffApi.add(form);
+      // Clean contact number before submission
+      const cleanedForm = {
+        ...form,
+        Contact: form.Contact.trim().replace(/\D/g, '').slice(0, 10)
+      };
+      console.log('DEBUG FRONTEND: Creating staff with form data:', cleanedForm);
+      const staffResponse = await StaffApi.add(cleanedForm);
       console.log('DEBUG FRONTEND: Staff response:', staffResponse);
       const staffData = staffResponse.data?.data || staffResponse.data;
       console.log('DEBUG FRONTEND: Staff data extracted:', staffData);
@@ -502,25 +609,70 @@ function AddStaff() {
           <Col md={6}>
             <Form.Group>
               <Form.Label>Username</Form.Label>
-              <Form.Control name="user.username" value={form.user.username} onChange={onChange} required />
+                <Form.Control 
+                  name="user.username" 
+                  value={form.user.username} 
+                  onChange={(e) => {
+                    // Prevent spaces in username
+                    const value = e.target.value.replace(/\s/g, '');
+                    setForm((prev) => ({ ...prev, user: { ...prev.user, username: value } }));
+                  }}
+                  required 
+                  isInvalid={!!validationErrors.staff.username} 
+                />
+                <Form.Control.Feedback type="invalid">{validationErrors.staff.username}</Form.Control.Feedback>
             </Form.Group>
           </Col>
           <Col md={6}>
             <Form.Group>
               <Form.Label>Password</Form.Label>
-              <Form.Control name="user.password" type="password" value={form.user.password} onChange={onChange} required />
+                <Form.Control 
+                  name="user.password" 
+                  type="password" 
+                  value={form.user.password} 
+                  onChange={(e) => {
+                    // Prevent spaces in password
+                    const value = e.target.value.replace(/\s/g, '');
+                    setForm((prev) => ({ ...prev, user: { ...prev.user, password: value } }));
+                  }}
+                  required 
+                  isInvalid={!!validationErrors.staff.password} 
+                />
+                <Form.Control.Feedback type="invalid">{validationErrors.staff.password}</Form.Control.Feedback>
             </Form.Group>
           </Col>
           <Col md={6}>
             <Form.Group>
               <Form.Label>First Name</Form.Label>
-              <Form.Control name="FirstName" value={form.FirstName} onChange={onChange} required />
+                <Form.Control 
+                  name="FirstName" 
+                  value={form.FirstName} 
+                  onChange={(e) => {
+                    // Only allow letters and period
+                    const value = e.target.value.replace(/[^A-Za-z.]/g, '');
+                    setForm((prev) => ({ ...prev, FirstName: value }));
+                  }}
+                  required 
+                  isInvalid={!!validationErrors.staff.FirstName} 
+                />
+                <Form.Control.Feedback type="invalid">{validationErrors.staff.FirstName}</Form.Control.Feedback>
             </Form.Group>
           </Col>
           <Col md={6}>
             <Form.Group>
               <Form.Label>Last Name</Form.Label>
-              <Form.Control name="LastName" value={form.LastName} onChange={onChange} required />
+                <Form.Control 
+                  name="LastName" 
+                  value={form.LastName} 
+                  onChange={(e) => {
+                    // Only allow letters and period
+                    const value = e.target.value.replace(/[^A-Za-z.]/g, '');
+                    setForm((prev) => ({ ...prev, LastName: value }));
+                  }}
+                  required 
+                  isInvalid={!!validationErrors.staff.LastName} 
+                />
+                <Form.Control.Feedback type="invalid">{validationErrors.staff.LastName}</Form.Control.Feedback>
             </Form.Group>
           </Col>
           <Col md={4}>
@@ -547,25 +699,42 @@ function AddStaff() {
           <Col md={4}>
             <Form.Group>
               <Form.Label>DOB</Form.Label>
-              <Form.Control type="date" name="DOB" value={form.DOB} onChange={onChange} />
+                <Form.Control type="date" name="DOB" value={form.DOB} onChange={onChange} isInvalid={!!validationErrors.staff.DOB} />
+                <Form.Control.Feedback type="invalid">{validationErrors.staff.DOB}</Form.Control.Feedback>
             </Form.Group>
           </Col>
           <Col md={6}>
             <Form.Group>
               <Form.Label>Email</Form.Label>
-              <Form.Control name="Email" type="email" value={form.Email} onChange={onChange} />
+                <Form.Control name="Email" type="email" value={form.Email} onChange={onChange} isInvalid={!!validationErrors.staff.Email} />
+                <Form.Control.Feedback type="invalid">{validationErrors.staff.Email}</Form.Control.Feedback>
             </Form.Group>
           </Col>
           <Col md={6}>
             <Form.Group>
               <Form.Label>Contact</Form.Label>
-              <Form.Control name="Contact" value={form.Contact} onChange={onChange} />
+                <Form.Control 
+                  name="Contact" 
+                  type="tel"
+                  value={form.Contact} 
+                  onChange={(e) => {
+                    // Only allow digits, max 10
+                    const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setForm((prev) => ({ ...prev, Contact: value }));
+                  }}
+                  placeholder="10 digits starting with 6, 7, 8, or 9"
+                  maxLength={10}
+                  isInvalid={!!validationErrors.staff.Contact} 
+                />
+                <Form.Control.Feedback type="invalid">{validationErrors.staff.Contact}</Form.Control.Feedback>
+                <Form.Text className="text-muted">Must be exactly 10 digits starting with 6, 7, 8, or 9</Form.Text>
             </Form.Group>
           </Col>
           <Col md={12}>
             <Form.Group>
               <Form.Label>Address</Form.Label>
-              <Form.Control name="Address" value={form.Address} onChange={onChange} />
+                <Form.Control name="Address" value={form.Address} onChange={onChange} isInvalid={!!validationErrors.staff.Address} />
+                <Form.Control.Feedback type="invalid">{validationErrors.staff.Address}</Form.Control.Feedback>
             </Form.Group>
           </Col>
         </Row>
@@ -592,7 +761,8 @@ function AddStaff() {
                           loadSpecializations();
                         }
                       }}
-                      required
+                    required
+                    aria-invalid={!!validationErrors.doctor.specialization_id}
                       className="form-select"
                       style={{ flex: 1 }}
                       disabled={loadingSpecializations}
@@ -665,8 +835,10 @@ function AddStaff() {
                     value={doctorForm.ConsultationFee} 
                     onChange={onDoctorFormChange}
                     placeholder="e.g., 150.00"
-                    required
+                  required
+                  isInvalid={!!validationErrors.doctor.ConsultationFee}
                   />
+                <Form.Control.Feedback type="invalid">{validationErrors.doctor.ConsultationFee}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
               <Col md={6}>
@@ -698,6 +870,9 @@ function AddStaff() {
                       Please select at least one day
                     </div>
                   )}
+                  {validationErrors.doctor.ConsultationDays && (
+                    <div className="text-danger small">{validationErrors.doctor.ConsultationDays}</div>
+                  )}
                   {consultationDays.length > 0 && (
                     <div className="text-success small">
                       <i className="fas fa-check-circle me-1"></i>
@@ -719,7 +894,9 @@ function AddStaff() {
                         required
                         className="time-picker"
                         style={{ fontSize: '1rem', padding: '0.5rem' }}
+                        isInvalid={!!validationErrors.doctor.ConsultationStartTime}
                       />
+                      <Form.Control.Feedback type="invalid">{validationErrors.doctor.ConsultationStartTime}</Form.Control.Feedback>
                     </div>
                     <div className="d-flex align-items-center" style={{ paddingBottom: '0.5rem' }}>
                       <span className="text-muted">to</span>
@@ -733,7 +910,9 @@ function AddStaff() {
                         required
                         className="time-picker"
                         style={{ fontSize: '1rem', padding: '0.5rem' }}
+                        isInvalid={!!validationErrors.doctor.ConsultationEndTime || !!validationErrors.doctor.ConsultationTime}
                       />
+                      <Form.Control.Feedback type="invalid">{validationErrors.doctor.ConsultationEndTime || validationErrors.doctor.ConsultationTime}</Form.Control.Feedback>
                     </div>
                   </div>
                   {consultationStartTime && consultationEndTime && consultationStartTime >= consultationEndTime && (
@@ -760,7 +939,9 @@ function AddStaff() {
                     onChange={onDoctorFormChange}
                     placeholder="e.g., 5"
                     required
+                    isInvalid={!!validationErrors.doctor.YearsOfExperience}
                   />
+                  <Form.Control.Feedback type="invalid">{validationErrors.doctor.YearsOfExperience}</Form.Control.Feedback>
                 </Form.Group>
               </Col>
             </Row>
@@ -865,20 +1046,77 @@ function UpdateStaff() {
     LastName: '',
     Email: '',
     Password: '',
-    Address: ''
+    Address: '',
+    DOB: '',
+    Contact: ''
   });
   
   // Doctor-specific form state
   const [doctorForm, setDoctorForm] = useState({
+    specialization_id: '',
     ConsultationFee: '',
     ConsultationDays: '',
     ConsultationTime: '',
     YearsOfExperience: ''
   });
   
+  const [specializations, setSpecializations] = useState([]);
+  const [loadingSpecializations, setLoadingSpecializations] = useState(false);
+  const [consultationDays, setConsultationDays] = useState([]);
+  const [consultationStartTime, setConsultationStartTime] = useState('');
+  const [consultationEndTime, setConsultationEndTime] = useState('');
+  
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [validationErrors, setValidationErrors] = useState({ update: {}, doctor: {} });
+
+  // Day mapping for consultation days
+  const dayMapping = {
+    'Sunday': 1,
+    'Monday': 2,
+    'Tuesday': 3,
+    'Wednesday': 4,
+    'Thursday': 5,
+    'Friday': 6,
+    'Saturday': 7
+  };
+
+  const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  
+  // Load specializations when doctor is selected
+  const loadSpecializations = async () => {
+    setLoadingSpecializations(true);
+    try {
+      const response = await SpecializationApi.getAll();
+      let specializationsData = [];
+      if (response.data) {
+        if (Array.isArray(response.data)) {
+          specializationsData = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          specializationsData = response.data.data;
+        } else if (response.data.results && Array.isArray(response.data.results)) {
+          specializationsData = response.data.results;
+        }
+      }
+      setSpecializations(specializationsData);
+    } catch (err) {
+      console.error('Failed to load specializations:', err);
+    } finally {
+      setLoadingSpecializations(false);
+    }
+  };
+
+  const handleDayToggle = (dayName) => {
+    const dayValue = dayMapping[dayName];
+    setConsultationDays(prev => {
+      if (prev.includes(dayValue)) {
+        return prev.filter(d => d !== dayValue);
+      } else {
+        return [...prev, dayValue].sort();
+      }
+    });
+  };
 
   // Search function
   const handleSearch = async (e) => {
@@ -937,11 +1175,18 @@ function UpdateStaff() {
       LastName: staff.last_name || staff.LastName || '',
       Email: staff.email || staff.Email || '',
       Password: '',
-      Address: staff.address || staff.Address || ''
+      Address: staff.address || staff.Address || '',
+      DOB: staff.dob || staff.DOB || '',
+      Contact: staff.contact || staff.Contact || ''
     });
     
     // If staff is a doctor, load doctor details from the doctor table
     if (staff.role === 'DOC' || staff.Role === 'DOC') {
+      // Load specializations first
+      if (specializations.length === 0) {
+        await loadSpecializations();
+      }
+      
       try {
         console.log('Loading doctor details for staff ID:', staff.id || staff.staff_id);
         const doctorResponse = await DoctorApi.getByStaffId(staff.id || staff.staff_id);
@@ -950,31 +1195,55 @@ function UpdateStaff() {
         const doctorData = doctorResponse.data?.data || doctorResponse.data;
         console.log('Doctor data extracted:', doctorData);
         
+        // Parse consultation days and time
+        const consultationDaysData = doctorData.ConsultationDays || doctorData.consultation_days || [];
+        const consultationTimeStr = doctorData.ConsultationTime || doctorData.consultation_time || '';
+        
+        setConsultationDays(Array.isArray(consultationDaysData) ? consultationDaysData : []);
+        
+        if (consultationTimeStr && consultationTimeStr.includes('-')) {
+          const [start, end] = consultationTimeStr.split('-').map(t => t.trim());
+          setConsultationStartTime(start || '');
+          setConsultationEndTime(end || '');
+        } else {
+          setConsultationStartTime('');
+          setConsultationEndTime('');
+        }
+        
         setDoctorForm({
+          specialization_id: doctorData.specialization_id || doctorData.SpecializationId || '',
           ConsultationFee: doctorData.ConsultationFee || doctorData.consultation_fee || '',
-          ConsultationDays: doctorData.ConsultationDays || doctorData.consultation_days || '',
-          ConsultationTime: doctorData.ConsultationTime || doctorData.consultation_time || '',
+          ConsultationDays: consultationDaysData,
+          ConsultationTime: consultationTimeStr,
           YearsOfExperience: doctorData.YearsOfExperience || doctorData.years_of_experience || ''
         });
       } catch (err) {
         console.error('Failed to load doctor details:', err);
         // If doctor details don't exist, set empty form
         setDoctorForm({
+          specialization_id: '',
           ConsultationFee: '',
-          ConsultationDays: '',
+          ConsultationDays: [],
           ConsultationTime: '',
           YearsOfExperience: ''
         });
+        setConsultationDays([]);
+        setConsultationStartTime('');
+        setConsultationEndTime('');
         setError('Doctor profile not found. You can still update staff details.');
       }
     } else {
       // Clear doctor form for non-doctors
       setDoctorForm({
+        specialization_id: '',
         ConsultationFee: '',
-        ConsultationDays: '',
+        ConsultationDays: [],
         ConsultationTime: '',
         YearsOfExperience: ''
       });
+      setConsultationDays([]);
+      setConsultationStartTime('');
+      setConsultationEndTime('');
     }
   };
 
@@ -989,11 +1258,127 @@ function UpdateStaff() {
     setSubmitting(true);
     setError('');
     setSuccess('');
+
+    // Client-side validation
+    const updErrors = {};
+    const docErrors = {};
+    
+    // First name: only characters and ".", at least 2 characters
+    if (!updateForm.FirstName || updateForm.FirstName.trim().length < 2) {
+      updErrors.FirstName = 'First name is required and must be at least 2 characters';
+    } else if (!/^[A-Za-z.]+$/.test(updateForm.FirstName.trim())) {
+      updErrors.FirstName = 'First name can only contain letters and "."';
+    }
+    
+    // Last name: only characters and ".", at least 2 characters
+    if (!updateForm.LastName || updateForm.LastName.trim().length < 2) {
+      updErrors.LastName = 'Last name is required and must be at least 2 characters';
+    } else if (!/^[A-Za-z.]+$/.test(updateForm.LastName.trim())) {
+      updErrors.LastName = 'Last name can only contain letters and "."';
+    }
+    
+    // Email validation
+    if (!updateForm.Email) {
+      updErrors.Email = 'Email is required';
+    } else {
+      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRe.test(updateForm.Email)) updErrors.Email = 'Enter a valid email';
+    }
+    
+    // Password: no spaces, at least 6 characters
+    if (!updateForm.Password || updateForm.Password.length < 6) {
+      updErrors.Password = 'Password must be at least 6 characters';
+    } else if (/\s/.test(updateForm.Password)) {
+      updErrors.Password = 'Password cannot contain spaces';
+    }
+    
+    // Address validation
+    if (!updateForm.Address || updateForm.Address.trim().length < 5) {
+      updErrors.Address = 'Address is required';
+    }
+    
+    // Contact: exactly 10 digits, must start with 6, 7, 8, or 9
+    if (!updateForm.Contact || updateForm.Contact.trim().length === 0) {
+      updErrors.Contact = 'Contact number is required';
+    } else {
+      const contactClean = updateForm.Contact.trim().replace(/\D/g, ''); // Remove non-digits
+      if (!/^[6789]\d{9}$/.test(contactClean)) {
+        updErrors.Contact = 'Contact must be exactly 10 digits and start with 6, 7, 8, or 9';
+      }
+    }
+    
+    // DOB: must be between ages 18-60
+    if (!updateForm.DOB || updateForm.DOB.trim().length === 0) {
+      updErrors.DOB = 'Date of birth is required';
+    } else {
+      const dob = new Date(updateForm.DOB);
+      if (Number.isNaN(dob.getTime())) {
+        updErrors.DOB = 'Invalid date';
+      } else if (dob > new Date()) {
+        updErrors.DOB = 'Date of birth cannot be in the future';
+      } else {
+        const today = new Date();
+        const age = today.getFullYear() - dob.getFullYear();
+        const monthDiff = today.getMonth() - dob.getMonth();
+        const dayDiff = today.getDate() - dob.getDate();
+        const actualAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) ? age - 1 : age;
+        
+        if (actualAge < 18) {
+          updErrors.DOB = 'Date of birth must be at least 18 years ago';
+        } else if (actualAge > 60) {
+          updErrors.DOB = 'Date of birth must be no more than 60 years ago';
+        }
+      }
+    }
+
+    // Doctor validations
+    if (selectedStaff.role === 'DOC' || selectedStaff.Role === 'DOC') {
+      if (!doctorForm.specialization_id) docErrors.specialization_id = 'Specialization is required';
+      
+      const fee = Number(doctorForm.ConsultationFee);
+      if (doctorForm.ConsultationFee === '' || Number.isNaN(fee) || fee <= 0) {
+        docErrors.ConsultationFee = 'Enter a valid consultation fee';
+      }
+      
+      if (consultationDays.length === 0) {
+        docErrors.ConsultationDays = 'Select at least one consultation day';
+      }
+      
+      if (!consultationStartTime) {
+        docErrors.ConsultationStartTime = 'Start time is required';
+      }
+      
+      if (!consultationEndTime) {
+        docErrors.ConsultationEndTime = 'End time is required';
+      }
+      
+      if (consultationStartTime && consultationEndTime && consultationStartTime >= consultationEndTime) {
+        docErrors.ConsultationTime = 'End time must be after start time';
+      }
+      
+      const exp = Number(doctorForm.YearsOfExperience);
+      if (doctorForm.YearsOfExperience === '' || Number.isNaN(exp) || exp < 0 || exp > 80) {
+        docErrors.YearsOfExperience = 'Enter valid years of experience (0-80)';
+      }
+    }
+
+    if (Object.keys(updErrors).length || Object.keys(docErrors).length) {
+      setValidationErrors({ update: updErrors, doctor: docErrors });
+      setSubmitting(false);
+      return;
+    }
+    setValidationErrors({ update: {}, doctor: {} });
     
     try {
       const updatePayload = {
         staff_id: selectedStaff.id || selectedStaff.staff_id,
-        ...updateForm
+        FirstName: updateForm.FirstName,
+        LastName: updateForm.LastName,
+        Email: updateForm.Email,
+        Password: updateForm.Password,
+        Address: updateForm.Address,
+        DOB: updateForm.DOB,
+        Contact: updateForm.Contact.trim().replace(/\D/g, '') // Clean contact number
       };
       
       console.log('Updating staff with payload:', updatePayload);
@@ -1002,29 +1387,49 @@ function UpdateStaff() {
       // If staff is a doctor, update doctor details
       if (selectedStaff.role === 'DOC' || selectedStaff.Role === 'DOC') {
         try {
-          // First get the doctor ID by staff ID
-          const doctorResponse = await DoctorApi.getByStaffId(selectedStaff.id || selectedStaff.staff_id);
-          const doctorData = doctorResponse.data?.data || doctorResponse.data;
+          // First check if doctor exists
+          let doctorData;
+          try {
+            const doctorResponse = await DoctorApi.getByStaffId(selectedStaff.id || selectedStaff.staff_id);
+            doctorData = doctorResponse.data?.data || doctorResponse.data;
+          } catch (err) {
+            // Doctor doesn't exist, create new one
+            doctorData = null;
+          }
           
           const doctorPayload = {
-            doctor_id: doctorData.DoctorId || doctorData.doctor_id,
+            staff_id: selectedStaff.id || selectedStaff.staff_id,
+            specialization_id: Number(doctorForm.specialization_id),
             consultation_fee: Number(doctorForm.ConsultationFee),
-            consultation_days: doctorForm.ConsultationDays,
-            consultation_time: doctorForm.ConsultationTime,
-            years_of_experience: Number(doctorForm.YearsOfExperience)
+            consultation_days: consultationDays,
+            consultation_time: `${consultationStartTime}-${consultationEndTime}`,
+            years_of_experience: Number(doctorForm.YearsOfExperience),
+            is_available: true
           };
-          console.log('Updating doctor with payload:', doctorPayload);
-          await DoctorApi.update(doctorPayload);
+          
+          if (doctorData && (doctorData.DoctorId || doctorData.doctor_id)) {
+            // Update existing doctor
+            doctorPayload.doctor_id = doctorData.DoctorId || doctorData.doctor_id;
+            console.log('Updating doctor with payload:', doctorPayload);
+            await DoctorApi.update(doctorPayload);
+          } else {
+            // Create new doctor profile
+            console.log('Creating new doctor profile with payload:', doctorPayload);
+            await DoctorApi.create(doctorPayload);
+          }
         } catch (err) {
-          console.error('Failed to update doctor details:', err);
+          console.error('Failed to update/create doctor details:', err);
           setError('Staff updated but doctor details could not be updated. Please try updating doctor details separately.');
         }
       }
       
       setSuccess('Staff updated successfully');
       setSelectedStaff(null);
-      setUpdateForm({ FirstName: '', LastName: '', Email: '', Password: '', Address: '' });
-      setDoctorForm({ ConsultationFee: '', ConsultationDays: '', ConsultationTime: '', YearsOfExperience: '' });
+      setUpdateForm({ FirstName: '', LastName: '', Email: '', Password: '', Address: '', DOB: '', Contact: '' });
+      setDoctorForm({ specialization_id: '', ConsultationFee: '', ConsultationDays: [], ConsultationTime: '', YearsOfExperience: '' });
+      setConsultationDays([]);
+      setConsultationStartTime('');
+      setConsultationEndTime('');
     } catch (err) {
       console.error('Update error:', err);
       setError(err?.response?.data?.detail || err?.response?.data?.error || err?.message || 'Failed to update staff');
@@ -1138,9 +1543,15 @@ function UpdateStaff() {
                     <Form.Label>First Name *</Form.Label>
                     <Form.Control
                       value={updateForm.FirstName}
-                      onChange={(e) => setUpdateForm(prev => ({ ...prev, FirstName: e.target.value }))}
+                      onChange={(e) => {
+                        // Only allow letters and period
+                        const value = e.target.value.replace(/[^A-Za-z.]/g, '');
+                        setUpdateForm(prev => ({ ...prev, FirstName: value }));
+                      }}
                       required
+                      isInvalid={!!validationErrors.update.FirstName}
                     />
+                    <Form.Control.Feedback type="invalid">{validationErrors.update.FirstName}</Form.Control.Feedback>
                   </Form.Group>
                 </Col>
                 <Col md={6}>
@@ -1148,9 +1559,15 @@ function UpdateStaff() {
                     <Form.Label>Last Name *</Form.Label>
                     <Form.Control
                       value={updateForm.LastName}
-                      onChange={(e) => setUpdateForm(prev => ({ ...prev, LastName: e.target.value }))}
+                      onChange={(e) => {
+                        // Only allow letters and period
+                        const value = e.target.value.replace(/[^A-Za-z.]/g, '');
+                        setUpdateForm(prev => ({ ...prev, LastName: value }));
+                      }}
                       required
+                      isInvalid={!!validationErrors.update.LastName}
                     />
+                    <Form.Control.Feedback type="invalid">{validationErrors.update.LastName}</Form.Control.Feedback>
                   </Form.Group>
                 </Col>
                 <Col md={6}>
@@ -1161,7 +1578,9 @@ function UpdateStaff() {
                       value={updateForm.Email}
                       onChange={(e) => setUpdateForm(prev => ({ ...prev, Email: e.target.value }))}
                       required
+                      isInvalid={!!validationErrors.update.Email}
                     />
+                    <Form.Control.Feedback type="invalid">{validationErrors.update.Email}</Form.Control.Feedback>
                   </Form.Group>
                 </Col>
                 <Col md={6}>
@@ -1170,10 +1589,49 @@ function UpdateStaff() {
                     <Form.Control
                       type="password"
                       value={updateForm.Password}
-                      onChange={(e) => setUpdateForm(prev => ({ ...prev, Password: e.target.value }))}
+                      onChange={(e) => {
+                        // Prevent spaces in password
+                        const value = e.target.value.replace(/\s/g, '');
+                        setUpdateForm(prev => ({ ...prev, Password: value }));
+                      }}
                       placeholder="Enter new password"
                       required
+                      isInvalid={!!validationErrors.update.Password}
                     />
+                    <Form.Control.Feedback type="invalid">{validationErrors.update.Password}</Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Date of Birth *</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={updateForm.DOB}
+                      onChange={(e) => setUpdateForm(prev => ({ ...prev, DOB: e.target.value }))}
+                      required
+                      isInvalid={!!validationErrors.update.DOB}
+                    />
+                    <Form.Control.Feedback type="invalid">{validationErrors.update.DOB}</Form.Control.Feedback>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Contact Number *</Form.Label>
+                    <Form.Control
+                      type="tel"
+                      value={updateForm.Contact}
+                      onChange={(e) => {
+                        // Only allow digits, max 10
+                        const value = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setUpdateForm(prev => ({ ...prev, Contact: value }));
+                      }}
+                      placeholder="10 digits starting with 6, 7, 8, or 9"
+                      required
+                      maxLength={10}
+                      isInvalid={!!validationErrors.update.Contact}
+                    />
+                    <Form.Control.Feedback type="invalid">{validationErrors.update.Contact}</Form.Control.Feedback>
+                    <Form.Text className="text-muted">Must be exactly 10 digits starting with 6, 7, 8, or 9</Form.Text>
                   </Form.Group>
                 </Col>
                 <Col md={12}>
@@ -1185,7 +1643,9 @@ function UpdateStaff() {
                       value={updateForm.Address}
                       onChange={(e) => setUpdateForm(prev => ({ ...prev, Address: e.target.value }))}
                       required
+                      isInvalid={!!validationErrors.update.Address}
                     />
+                    <Form.Control.Feedback type="invalid">{validationErrors.update.Address}</Form.Control.Feedback>
                   </Form.Group>
                 </Col>
               </Row>
@@ -1193,39 +1653,127 @@ function UpdateStaff() {
               {/* Doctor-specific fields */}
               {(selectedStaff.role === 'DOC' || selectedStaff.Role === 'DOC') && (
                 <div className="mt-4">
+                  <hr className="my-4" />
                   <h6 className="mb-3">Doctor Details</h6>
                   <Row className="g-3">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Specialization *</Form.Label>
+                        <Form.Select
+                          value={doctorForm.specialization_id}
+                          onChange={(e) => setDoctorForm(prev => ({ ...prev, specialization_id: e.target.value }))}
+                          required
+                          isInvalid={!!validationErrors.doctor.specialization_id}
+                          onFocus={async () => {
+                            if (specializations.length === 0 && !loadingSpecializations) {
+                              await loadSpecializations();
+                            }
+                          }}
+                          disabled={loadingSpecializations}
+                        >
+                          <option value="">
+                            {loadingSpecializations ? 'Loading...' : 'Select Specialization'}
+                          </option>
+                          {specializations.filter(spec => spec.is_active || spec.IsActive).map((spec) => (
+                            <option key={spec.id} value={spec.id}>
+                              {spec.name || spec.SpecializationName}
+                            </option>
+                          ))}
+                        </Form.Select>
+                        <Form.Control.Feedback type="invalid">{validationErrors.doctor.specialization_id}</Form.Control.Feedback>
+                      </Form.Group>
+                    </Col>
                     <Col md={6}>
                       <Form.Group>
                         <Form.Label>Consultation Fee *</Form.Label>
                         <Form.Control
                           type="number"
+                          step="0.01"
                           value={doctorForm.ConsultationFee}
                           onChange={(e) => setDoctorForm(prev => ({ ...prev, ConsultationFee: e.target.value }))}
                           required
+                          isInvalid={!!validationErrors.doctor.ConsultationFee}
                         />
+                        <Form.Control.Feedback type="invalid">{validationErrors.doctor.ConsultationFee}</Form.Control.Feedback>
                       </Form.Group>
                     </Col>
-                    <Col md={6}>
+                    <Col md={12}>
                       <Form.Group>
                         <Form.Label>Consultation Days *</Form.Label>
-                        <Form.Control
-                          value={doctorForm.ConsultationDays}
-                          onChange={(e) => setDoctorForm(prev => ({ ...prev, ConsultationDays: e.target.value }))}
-                          placeholder="e.g., Monday, Wednesday, Friday"
-                          required
-                        />
+                        <div className="d-flex flex-wrap gap-2 mb-2">
+                          {dayNames.map(day => (
+                            <Button
+                              key={day}
+                              variant={consultationDays.includes(dayMapping[day]) ? "primary" : "outline-secondary"}
+                              size="sm"
+                              onClick={() => handleDayToggle(day)}
+                              type="button"
+                              style={{ 
+                                minWidth: '80px',
+                                transition: 'all 0.2s ease',
+                                transform: consultationDays.includes(dayMapping[day]) ? 'scale(1.05)' : 'scale(1)'
+                              }}
+                              className="day-button"
+                            >
+                              <i className={`fas ${consultationDays.includes(dayMapping[day]) ? 'fa-check' : 'fa-circle'} me-1`}></i>
+                              {day.substring(0, 3)}
+                            </Button>
+                          ))}
+                        </div>
+                        {consultationDays.length === 0 && validationErrors.doctor.ConsultationDays && (
+                          <div className="text-danger small">
+                            <i className="fas fa-exclamation-triangle me-1"></i>
+                            {validationErrors.doctor.ConsultationDays}
+                          </div>
+                        )}
+                        {consultationDays.length > 0 && (
+                          <div className="text-success small">
+                            <i className="fas fa-check-circle me-1"></i>
+                            Selected: {consultationDays.map(day => dayNames[day - 1]).join(', ')}
+                          </div>
+                        )}
                       </Form.Group>
                     </Col>
                     <Col md={6}>
                       <Form.Group>
                         <Form.Label>Consultation Time *</Form.Label>
-                        <Form.Control
-                          value={doctorForm.ConsultationTime}
-                          onChange={(e) => setDoctorForm(prev => ({ ...prev, ConsultationTime: e.target.value }))}
-                          placeholder="e.g., 9:00 AM - 5:00 PM"
-                          required
-                        />
+                        <div className="d-flex gap-3 align-items-end">
+                          <div className="flex-grow-1">
+                            <Form.Label className="small text-muted mb-1">Start Time</Form.Label>
+                            <Form.Control 
+                              type="time"
+                              value={consultationStartTime}
+                              onChange={(e) => setConsultationStartTime(e.target.value)}
+                              required
+                              className="time-picker"
+                              style={{ fontSize: '1rem', padding: '0.5rem' }}
+                              isInvalid={!!validationErrors.doctor.ConsultationStartTime || !!validationErrors.doctor.ConsultationTime}
+                            />
+                            <Form.Control.Feedback type="invalid">{validationErrors.doctor.ConsultationStartTime || validationErrors.doctor.ConsultationTime}</Form.Control.Feedback>
+                          </div>
+                          <div className="d-flex align-items-center" style={{ paddingBottom: '0.5rem' }}>
+                            <span className="text-muted">to</span>
+                          </div>
+                          <div className="flex-grow-1">
+                            <Form.Label className="small text-muted mb-1">End Time</Form.Label>
+                            <Form.Control 
+                              type="time"
+                              value={consultationEndTime}
+                              onChange={(e) => setConsultationEndTime(e.target.value)}
+                              required
+                              className="time-picker"
+                              style={{ fontSize: '1rem', padding: '0.5rem' }}
+                              isInvalid={!!validationErrors.doctor.ConsultationEndTime || !!validationErrors.doctor.ConsultationTime}
+                            />
+                            <Form.Control.Feedback type="invalid">{validationErrors.doctor.ConsultationEndTime || validationErrors.doctor.ConsultationTime}</Form.Control.Feedback>
+                          </div>
+                        </div>
+                        {consultationStartTime && consultationEndTime && consultationStartTime < consultationEndTime && (
+                          <div className="text-success small mt-2">
+                            <i className="fas fa-check-circle me-1"></i>
+                            Valid time range selected
+                          </div>
+                        )}
                       </Form.Group>
                     </Col>
                     <Col md={6}>
@@ -1235,8 +1783,11 @@ function UpdateStaff() {
                           type="number"
                           value={doctorForm.YearsOfExperience}
                           onChange={(e) => setDoctorForm(prev => ({ ...prev, YearsOfExperience: e.target.value }))}
+                          placeholder="e.g., 5"
                           required
+                          isInvalid={!!validationErrors.doctor.YearsOfExperience}
                         />
+                        <Form.Control.Feedback type="invalid">{validationErrors.doctor.YearsOfExperience}</Form.Control.Feedback>
                       </Form.Group>
                     </Col>
                   </Row>
@@ -1251,8 +1802,11 @@ function UpdateStaff() {
                   variant="secondary" 
                   onClick={() => {
                     setSelectedStaff(null);
-                    setUpdateForm({ FirstName: '', LastName: '', Email: '', Password: '', Address: '' });
-                    setDoctorForm({ ConsultationFee: '', ConsultationDays: '', ConsultationTime: '', YearsOfExperience: '' });
+                    setUpdateForm({ FirstName: '', LastName: '', Email: '', Password: '', Address: '', DOB: '', Contact: '' });
+                    setDoctorForm({ specialization_id: '', ConsultationFee: '', ConsultationDays: [], ConsultationTime: '', YearsOfExperience: '' });
+                    setConsultationDays([]);
+                    setConsultationStartTime('');
+                    setConsultationEndTime('');
                   }}
                 >
                   Cancel
